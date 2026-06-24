@@ -84,13 +84,13 @@
         <targetDevice>dsPIC33EV256GM106</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool></platformTool>
+        <platformTool>noID</platformTool>
         <languageToolchain>XC16</languageToolchain>
-        <languageToolchainVersion>2.10</languageToolchainVersion>
+        <languageToolchainVersion>2.00</languageToolchainVersion>
         <platform>3</platform>
       </toolsSet>
       <packs>
-        <pack name="dsPIC33EV-GM-00X-10X_DFP" vendor="Microchip" version="1.2.51"/>
+        <pack name="dsPIC33EV-GM-00X-10X_DFP" vendor="Microchip" version="1.4.243"/>
       </packs>
       <ScriptingSettings>
       </ScriptingSettings>
