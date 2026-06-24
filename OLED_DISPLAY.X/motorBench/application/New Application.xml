@@ -1,0 +1,126 @@
+<application>
+  <name>New Application</name>
+  <description></description>
+  <notes></notes>
+  <configuration>
+    <name></name>
+    <axes>
+      <com.microchip.motorbench.db.model.axis.Axis>
+        <name></name>
+        <iterations>
+          <iteration>
+            <name>active</name>
+            <description></description>
+            <notes></notes>
+            <date>2020-11-19 15:02:59</date>
+            <id>0</id>
+            <hardware>
+              <name></name>
+              <processor>
+                <name></name>
+                <partNumber>dsPIC33EP256MC506</partNumber>
+                <allowedADCResolutions>
+                  <int>10</int>
+                  <int>12</int>
+                </allowedADCResolutions>
+                <adcResolution>10</adcResolution>
+                <pimPartNumber>MA330031-2</pimPartNumber>
+                <pimDescription>This plug-in module comes with a 64-pin dsPIC33EP256MC506 TQFP device. It enables using the OpAmps on the MCLV-2 and MCHV-2 boards. It can be used with the Microchip MCHV-2 [DM330023-2] and MCLV-2 [DM330021-2]. This PIM is not compatible with the MCLV[DM330021] and MCHV[DM330023]. Use the MA330028 with the MCLV and MCHV development boards.</pimDescription>
+                <processorClock>7.0E7</processorClock>
+                <pwmSwitching>20000.0</pwmSwitching>
+                <pwmDeadtime>2.0E-6</pwmDeadtime>
+                <omegaRMin>52.359878</omegaRMin>
+              </processor>
+            </hardware>
+            <motor class="PmsmIpmMotor">
+              <name></name>
+              <nickname>New Pmsm Motor</nickname>
+              <mfrCompanyName></mfrCompanyName>
+              <mfrMotorName></mfrMotorName>
+              <mfrPartNumber></mfrPartNumber>
+              <mfrAdditionalInfo></mfrAdditionalInfo>
+              <mchpDirectPartNumber></mchpDirectPartNumber>
+              <polePairs>0</polePairs>
+              <namePlateRatedCurrentContinuous>0.0</namePlateRatedCurrentContinuous>
+              <namePlateRatedPeakCurrent>0.0</namePlateRatedPeakCurrent>
+              <namePlateRatedVoltage>0.0</namePlateRatedVoltage>
+              <namePlateBaseSpeed>0.0</namePlateBaseSpeed>
+              <namePlateRatedSpeed>0.0</namePlateRatedSpeed>
+              <datasheetInertia>0.0</datasheetInertia>
+              <datasheetDamping>0.0</datasheetDamping>
+              <datasheetFriction>0.0</datasheetFriction>
+            </motor>
+            <load class="constantLoad">
+              <name>Constant Load</name>
+            </load>
+            <estimator class="pllEstimator">
+              <name>PLL</name>
+              <type>PLL</type>
+              <delayTime1>1.0E-4</delayTime1>
+              <delayTime2>5.0E-5</delayTime2>
+              <timeConstant>0.00219</timeConstant>
+              <normalizedCutoffFrequency>732.0</normalizedCutoffFrequency>
+              <linearizationReferenceFrequency>125.66371</linearizationReferenceFrequency>
+            </estimator>
+            <algorithm class="FocAlgorithm">
+              <name>FOC</name>
+              <type>FOC</type>
+            </algorithm>
+            <selfCommissionMethod class="com.microchip.motorbench.db.model.axis.sc.pmsm.foc.PmsmFocSelfCommissionMethod">
+              <name/>
+              <selfCommissionResult class="com.microchip.motorbench.db.model.axis.sc.pmsm.foc.PmsmFocSelfCommissionResult">
+                <name/>
+                <windingResistance>
+                  <measured>NaN</measured>
+                  <entered>NaN</entered>
+                  <override>false</override>
+                </windingResistance>
+                <windingInductanceLq>
+                  <measured>NaN</measured>
+                  <entered>NaN</entered>
+                  <override>false</override>
+                </windingInductanceLq>
+                <windingInductanceLd>
+                  <measured>NaN</measured>
+                  <entered>NaN</entered>
+                  <override>false</override>
+                </windingInductanceLd>
+                <bemfConstant>
+                  <measured>NaN</measured>
+                  <entered>NaN</entered>
+                  <override>false</override>
+                </bemfConstant>
+                <inertia>
+                  <measured>NaN</measured>
+                  <entered>NaN</entered>
+                  <override>false</override>
+                </inertia>
+                <viscousDamping>
+                  <measured>NaN</measured>
+                  <entered>NaN</entered>
+                  <override>false</override>
+                </viscousDamping>
+                <friction>
+                  <measured>NaN</measured>
+                  <entered>NaN</entered>
+                  <override>false</override>
+                </friction>
+              </selfCommissionResult>
+              <calibrationBusVoltage>24.0</calibrationBusVoltage>
+              <calibrationResistance>12.0</calibrationResistance>
+              <motorSpinDownTime>NaN</motorSpinDownTime>
+              <maximumMotorSpeed>2094.395102</maximumMotorSpeed>
+              <currentPhaseMargin>95.0</currentPhaseMargin>
+              <currentPhaseLag>10.0</currentPhaseLag>
+            </selfCommissionMethod>
+            <currentLoopRate>0.0</currentLoopRate>
+            <velocityLoopRate>0.0</velocityLoopRate>
+          </iteration>
+        </iterations>
+        <activeIteration reference="../iterations/iteration"/>
+        <selectedFiles/>
+      </com.microchip.motorbench.db.model.axis.Axis>
+    </axes>
+    <activeAxis reference="../axes/com.microchip.motorbench.db.model.axis.Axis"/>
+  </configuration>
+</application>

@@ -107,7 +107,7 @@ extern double offset;
 extern int display_update_cnt;
 
 
-extern uint8_t lut[290];
+extern uint8_t lut[1157];
 extern uint16_t lut_size;
 
 extern uint32_t tmr1_cnt;
