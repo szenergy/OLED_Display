@@ -75,36 +75,50 @@ uint32_t cnt = 0;
 bool cnt_flag = false;
 
 //CAN VARIABLES
-//uint8_t data_rec_message[8] = {0};
+CAN_MSG_OBJ RECmsg;
+uint8_t data_rec_message[8] = {0};
 
 CAN_MSG_OBJ TRANSmsg;
 uint8_t data_trans_message[8] = {0x41,0x42,0x43,0x44,0x45,0x46,0x47,0x48};
 
+float vesc_voltage = 0;
+float vesc_current = 0;
 
 
-
+bool _CAN_Read_Helper()  {
+    RECmsg.data = data_rec_message;
+    return CAN1_Receive(&RECmsg);
+}
 
 void CAN_Receive(void){
-    CAN_MSG_OBJ RECmsg;
-    while(CAN1_Receive(&RECmsg)){
+    while(_CAN_Read_Helper()){
         
         if(RECmsg.msgId==0x129){ //saves sw table
             VcuState_A.bits = RECmsg.data[0];
-        }else if(RECmsg.msgId==0x123){ //saves RPM value
+        }
+        else if(RECmsg.msgId==0x123){ //saves RPM value
             update_cnt_100ms = 0;
             flags.update_synced = true;
             encoder.HighByte = RECmsg.data[0];
             encoder.LowByte = RECmsg.data[1];
-            if(!RECmsg.data[2] && RECmsg.data[0] && StwState.REVERSE){
+            if(!RECmsg.data[2] && RECmsg.data[0]){
                 vehicle.reverse = true;
             }
-        } else if (RECmsg.msgId==0x150) {
+        }
+        else if (RECmsg.msgId==0x150) {
             vehicle.lap_number = RECmsg.data[0];
-            vehicle.lap_sec = ((RECmsg.data[1] << 8) | RECmsg.data[2]) / 100.0F;
+            vehicle.lap_sec =  ((RECmsg.data[1] << 8) | RECmsg.data[2]) / 100.0F;
             vehicle.distance = ((RECmsg.data[3] << 8) | RECmsg.data[4]) / 20.0F;
             vehicle.delta_time_sec = ((RECmsg.data[5] << 8) | RECmsg.data[6]) / 100.0F;
-        } else if (RECmsg.msgId==0x190) {
+        }
+        else if (RECmsg.msgId==0x190) {
             StwState.bits = RECmsg.data[0];
+        }
+        else if (RECmsg.msgId=0x1B51) {
+            vesc_voltage = ((RECmsg.data[5]<<8) | RECmsg.data[4]) / 10.0F;
+        }
+        else if (RECmsg.msgId=0x1051) {
+            vesc_current = ((RECmsg.data[5]<<8) | RECmsg.data[4]) / 10.0F;
         }
 //        else if(RECmsg.msgId==0x700){ //saves battery current and voltage values
 //            battery_current.HighByte = RECmsg.data[0];
@@ -166,6 +180,11 @@ void CalculateDisplayValues(void){
     
     //Voltage
 //    vehicle.voltage = (double)battery_voltage.Word/1000;
+    
+    //New joule
+    vehicle.joule = vesc_current*vesc_voltage*0.05;
+    vehicle.lap_joules[vehicle.lap_number] += vehicle.joule;
+    vehicle.lap_joule = vehicle.lap_joules[vehicle.lap_number];
     
     //Joule
 //    vehicle.joule = (((double)((int16_t)battery_current.Word))/300+0.047) * (((double)battery_voltage.Word)/1000) * 0.05;
@@ -260,9 +279,9 @@ void UpdateDisplay(uint8_t brightness){
         draw_text(tx_buf, itoa(TOTAL_LAPS), 130, 12, brightness);
         
     // DRIVE MODE
-//        if(VcuState_A.DRIVE==1){
+//        if(StwState.DRIVE==1){
 //          draw_char(tx_buf, 'D', 59, 33, brightness);
-//        }else if(VcuState_A.REVERSE==1){ 
+//        }else if(StwState.REVERSE==1){ 
 //          draw_char(tx_buf, 'R', 59, 33, brightness);
 //        }else{
 //          draw_char(tx_buf, 'N', 59, 33, brightness);
@@ -291,14 +310,23 @@ void UpdateDisplay(uint8_t brightness){
       
         
     // CAN message count
-        select_font(&Font5x7FixedMono);
-        draw_text(tx_buf, "MSGS:", 0, 45, brightness);
-        draw_text(tx_buf, itoa(can_msg_num), 30, 45, brightness);
-        
-    // BEST JOULE
 //        select_font(&Font5x7FixedMono);
-//        draw_text(tx_buf, "BESTJ:", 78, 46, brightness);
-//        draw_text(tx_buf, itoa(vehicle.best_lap_joule), 114, 46, brightness);  
+//        draw_text(tx_buf, "MSGS:", 0, 45, brightness);
+//        draw_text(tx_buf, itoa(can_msg_num), 30, 45, brightness);
+        
+    // LAST LAP JOULE
+        select_font(&Font5x7FixedMono);
+        draw_text(tx_buf, "PREVJ:", 0, 45, brightness);
+        if (vehicle.lap_number == 0) {
+            draw_text(tx_buf, itoa(vehicle.lap_joules[0]), 37, 45, brightness);
+        } else {
+            draw_text(tx_buf, itoa(vehicle.lap_joules[vehicle.lap_number-1]), 30, 45, brightness);
+        }
+        
+    // LAP JOULE
+        select_font(&Font5x7FixedMono);
+        draw_text(tx_buf, "LAPJ:", 78, 46, brightness);
+        draw_text(tx_buf, itoa(vehicle.lap_joule), 109, 46, brightness);  
         
     // MISCELLANEOUS
         select_font(&Org_01);

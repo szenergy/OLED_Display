@@ -22,6 +22,7 @@ struct VEHICLE{
     double prev_distance;
     double joule;
     double lap_joule;
+    float lap_joules[255];
     double best_lap_joule;
     double total_joule;
     double voltage;
@@ -33,7 +34,7 @@ struct VEHICLE{
     
 };
 
-typedef union __attribute__(()) 
+typedef union __attribute__((packed)) 
 {
     uint16_t Word;
     struct
@@ -43,7 +44,7 @@ typedef union __attribute__(())
     };
 }CAN_Bytes;
 
-typedef union  __attribute__(())
+typedef union  __attribute__((packed))
 {
     uint8_t bits;
     struct
@@ -59,7 +60,7 @@ typedef union  __attribute__(())
     };
 } VCU_STATE_A;
 
-typedef union  __attribute__(())
+typedef union  __attribute__((packed))
 {
     uint8_t bits;
     struct
