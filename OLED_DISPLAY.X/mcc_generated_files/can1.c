@@ -273,8 +273,8 @@ void CAN1_Initialize(void)
     /* Configure the filters */
     C1RXF0SIDbits.SID = 0x123; 
     C1RXF1SIDbits.SID = 0x129; 
-    C1RXF2SIDbits.SID = 0x700; 
-    C1RXF3SIDbits.SID = 0x10; 
+    C1RXF2SIDbits.SID = 0x150; 
+    C1RXF3SIDbits.SID = 0x190; 
     
     C1RXF0SIDbits.EID = 0x0; 
     C1RXF1SIDbits.EID = 0x0; 

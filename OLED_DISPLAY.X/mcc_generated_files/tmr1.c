@@ -163,7 +163,7 @@ void __attribute__ ((weak)) TMR1_CallBack(void)
     tmr1_cnt++;
     tmr1_1s_cnt++;
     update_cnt_100ms++;
-    vehicle.lap_ms++;
+//    vehicle.lap_ms++;
     
     
     if(tmr1_1s_cnt>=1000){
@@ -198,10 +198,10 @@ void __attribute__ ((weak)) TMR1_CallBack(void)
     }
     
     
-    if(vehicle.lap_ms==1000){
-        vehicle.lap_sec++;
-        vehicle.lap_ms=0;
-    }
+//    if(vehicle.lap_ms==1000){
+//        vehicle.lap_sec++;
+//        vehicle.lap_ms=0;
+//    }
 }
 
 void  TMR1_SetInterruptHandler(void (* InterruptHandler)(void))
