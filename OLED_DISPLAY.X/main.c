@@ -26,7 +26,7 @@ int main(void)
 
     SSD1322_API_init();
     set_buffer_size(256, 64);
-    CAN1_TransmitEnable();
+//    CAN1_TransmitEnable();
     CAN1_ReceiveEnable();
     LED_LG_SetHigh();
     while(CAN_OP_MODE_REQUEST_FAIL == CAN1_OperationModeSet(CAN_CONFIGURATION_MODE));
@@ -44,6 +44,7 @@ int main(void)
 //        }
         if(flags.can_message_received){
             flags.can_message_received = false;
+            can_msg_num++;
             CAN_Receive();
         }
         

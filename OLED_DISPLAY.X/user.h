@@ -125,6 +125,8 @@ extern uint16_t debounce_500ms;
 extern uint32_t cnt;
 extern bool cnt_flag;
 
+extern uint16_t can_msg_num;
+
 
 char* itoa(uint32_t value);
 void UpdateDisplay(uint8_t brightness);
