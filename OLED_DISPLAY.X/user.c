@@ -279,9 +279,9 @@ void UpdateDisplay(uint8_t brightness){
         draw_text(tx_buf, itoa(TOTAL_LAPS), 130, 12, brightness);
         
     // DRIVE MODE
-//        if(StwState.DRIVE==1){
+//        if(VcuState_A.DRIVE==1){
 //          draw_char(tx_buf, 'D', 59, 33, brightness);
-//        }else if(StwState.REVERSE==1){ 
+//        }else if(VcuState_A.REVERSE==1){ 
 //          draw_char(tx_buf, 'R', 59, 33, brightness);
 //        }else{
 //          draw_char(tx_buf, 'N', 59, 33, brightness);
