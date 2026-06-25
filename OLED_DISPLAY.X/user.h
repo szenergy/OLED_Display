@@ -45,35 +45,35 @@ typedef union __attribute__(())
 
 typedef union  __attribute__(())
 {
-    uint8_t VCUBits_1;
+    uint8_t bits;
     struct
     {
-        uint8_t ACC             :1;
-        uint8_t DRIVE           :1;
-        uint8_t REVERSE         :1;
-        uint8_t LAP             :1;
-        uint8_t DC_ENABLE       :1;
-        uint8_t MC_OW           :1;
-        uint8_t FN1             :1;
-        uint8_t FN2             :1;   
-    };
-}VCU_STATE_A;
-
-typedef union __attribute__(()) 
-{
-    uint8_t VCUBits_2;
-    struct
-    {
-        uint8_t TS_L            :1;
-        uint8_t TS_R            :1;
-        uint8_t LIGHTS          :1;
-        uint8_t HAZARD          :1;
-        uint8_t AUT             :1;
+        uint8_t LIGHTS_DRL      :1;
+        uint8_t LIGHTS_HAZARD   :1;
+        uint8_t AUTONOMOUS      :1;
         uint8_t BRAKE           :1;
-        uint8_t RELAY_NO        :1;
-        uint8_t RELAY_NC        :1;
+        uint8_t LIGHTS_ENABLE   :1;
+        uint8_t MC_OW           :1;
+        uint8_t WIPER           :1;
+        uint8_t PESC_SLEEP      :1;
     };
-}VCU_STATE_B;
+} VCU_STATE_A;
+
+typedef union  __attribute__(())
+{
+    uint8_t bits;
+    struct
+    {
+        uint8_t ACC        :1;
+        uint8_t DRIVE      :1;
+        uint8_t REVERSE    :1;
+        uint8_t LAP        :1;
+        uint8_t TS_L       :1;
+        uint8_t TS_R       :1;
+        uint8_t FUNCTION1  :1;
+        uint8_t FUNCTION2  :1;
+    };
+} STW_STATE_BUTTONS;
 
 struct FLAGS{
     bool update_synced;
@@ -89,7 +89,8 @@ extern volatile struct VEHICLE vehicle;
 extern volatile CAN_Bytes rpm;
 extern volatile CAN_Bytes bms;
 extern volatile VCU_STATE_A VcuState_A;
-extern volatile VCU_STATE_B VcuState_B;
+//extern volatile VCU_STATE_B VcuState_B;
+extern volatile STW_STATE_BUTTONS StwState;
 
 //ADC
 extern ADC1_CHANNEL left_phototrans;
@@ -107,7 +108,7 @@ extern double offset;
 extern int display_update_cnt;
 
 
-extern uint8_t lut[1157];
+extern uint8_t lut[642];
 extern uint16_t lut_size;
 
 extern uint32_t tmr1_cnt;

@@ -17,10 +17,11 @@ volatile struct FLAGS flags = {};
 //CORE VALUE VARIABLES
 volatile struct VEHICLE vehicle = {};
 volatile CAN_Bytes encoder = {};
-volatile CAN_Bytes battery_current = {};
-volatile CAN_Bytes battery_voltage = {};
+//volatile CAN_Bytes battery_current = {};
+//volatile CAN_Bytes battery_voltage = {};
 volatile VCU_STATE_A VcuState_A = {};
-volatile VCU_STATE_B VcuState_B = {};
+//volatile VCU_STATE_B VcuState_B = {};
+volatile STW_STATE_BUTTONS StwState = {};
 
 double rpm_m_average = 0;
 double rpm_avg[3];
@@ -39,7 +40,8 @@ uint8_t c_mid_brightness = 11;
 uint8_t c_bottom_brightness = 15;
 
 //lut size must be changed in user.h too
-uint8_t lut[1157]={0,13,18,22,26,29,31,34,36,38,40,42,44,46,47,49,50,52,53,55,56,57,58,59,60,61,62,63,63,63,63,63,62,62,62,62,62,62,62,63,63,64,64,65,65,66,66,66,66,66,66,66,66,66,66,66,65,65,65,65,65,65,65,64,64,64,64,64,64,64,63,63,63,63,63,63,62,62,63,63,64,64,65,65,65,65,65,64,64,64,64,64,64,64,64,63,63,63,63,63,63,63,63,63,63,64,65,65,65,65,65,65,65,65,65,65,64,64,64,64,64,64,64,64,64,64,64,64,64,64,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,62,62,62,62,62,62,62,62,62,61,61,61,61,61,61,60,60,60,60,60,59,59,59,59,59,58,58,58,58,57,57,57,57,57,57,56,56,56,56,56,56,56,55,55,55,55,55,55,54,54,54,54,54,54,54,53,53,53,53,53,53,53,53,52,52,52,52,52,52,52,52,51,51,51,51,51,51,51,51,50,50,50,50,50,50,50,49,49,49,49,49,49,49,48,48,48,48,48,48,47,47,47,47,47,46,46,46,46,46,46,45,45,45,45,45,45,45,44,44,44,45,46,48,50,51,52,52,51,51,51,51,51,51,51,50,50,50,50,50,50,49,49,49,49,49,49,49,48,48,48,48,48,48,47,47,47,47,47,47,46,46,46,46,46,46,46,45,45,45,45,45,45,45,44,44,44,44,44,44,43,43,43,43,43,43,42,42,42,42,42,42,41,41,41,41,41,41,40,40,40,40,40,40,39,39,39,39,39,39,38,39,41,43,45,46,47,47,47,47,46,46,46,46,46,46,46,45,45,45,45,45,45,44,44,44,44,44,44,43,43,43,43,43,43,42,42,42,42,42,42,41,41,41,41,41,41,40,40,40,40,40,39,39,39,39,39,39,38,38,38,38,37,37,37,37,37,39,41,43,45,45,45,45,45,45,45,44,44,44,44,44,44,43,43,43,43,43,42,42,42,42,42,42,42,41,41,41,41,41,41,41,41,41,40,40,41,43,45,46,48,49,49,49,48,48,49,50,52,53,54,55,55,54,54,54,54,56,57,58,59,59,59,59,59,59,59,60,61,61,62,62,62,62,62,61,61,61,61,61,60,60,60,60,59,59,59,59,59,58,58,58,58,57,57,57,57,57,56,56,56,56,56,55,55,55,55,54,54,54,54,54,54,53,53,53,53,53,52,52,52,52,52,52,52,51,51,51,51,51,51,51,50,50,50,50,50,50,50,50,49,50,52,53,54,56,56,56,56,56,56,56,56,56,55,55,55,55,55,55,55,55,54,54,54,54,54,54,54,53,53,54,55,56,58,59,59,59,59,59,59,59,58,58,58,58,59,60,60,61,62,63,63,64,64,65,65,65,65,65,64,64,64,64,64,64,64,63,63,63,63,63,63,63,62,62,62,62,62,62,62,61,61,61,61,61,61,61,60,60,60,61,61,62,63,63,64,64,65,65,66,66,66,65,65,65,65,65,65,65,64,64,64,64,64,64,64,63,63,63,63,63,63,63,62,62,62,62,62,62,61,61,61,61,61,61,60,60,60,60,60,60,60,59,59,59,59,59,59,58,58,58,58,58,58,58,57,57,57,57,57,57,56,56,56,56,56,56,55,55,55,56,57,58,59,60,61,60,60,60,60,60,60,59,59,59,59,59,59,59,58,58,58,58,58,58,57,57,57,57,57,57,57,56,56,56,56,56,56,55,55,55,55,55,55,54,54,54,54,54,54,53,53,53,53,53,53,53,52,52,52,52,52,52,51,51,51,51,51,51,51,51,50,50,50,50,50,50,50,50,49,50,52,53,54,56,56,56,56,55,55,55,55,55,54,54,55,56,57,58,59,60,60,59,59,59,59,60,61,61,62,62,62,62,61,61,61,61,60,60,60,60,59,59,59,58,58,58,58,57,57,57,57,56,56,56,56,58,59,60,60,61,61,60,60,60,60,60,59,59,59,59,59,59,58,58,58,58,58,58,57,57,57,57,57,57,57,58,59,60,61,61,61,61,60,60,60,60,59,59,59,59,58,58,58,58,57,57,57,56,56,56,55,55,55,55,54,54,54,54,53,53,53,53,52,52,52,52,52,51,51,51,51,50,50,50,50,50,49,49,49,49,48,48,48,48,48,47,47,47,47,46,46,46,46,46,45,45,45,45,45,45,44,44,44,44,44,44,43,43,43,43,43,42,42,42,42,41,41,41,41,41,40,40,40,40,40,40,39,39,39,39,39,38,38,38,38,38,37,37,37,37,37,36,36,36,36,35,35,35,35,35,34,34,34,34,34,33,33,33,33,33,32,32,32,32,32,31,31,31,31,31,31,31,30,30,30,30,30,30,30,29,29,29,29,29,29,29,28,28,28,28,28,28,28,28,27,27,27,27,27,27,27,26,26,26,26,26,26,26,25,25,25,25,25,25,25,24,24,24,24,24,24,23,23,23,23,23,22,22,22,22,22,22,21,21,21,19,14,0};
+//uint8_t lut[1157]={0,13,18,22,26,29,31,34,36,38,40,42,44,46,47,49,50,52,53,55,56,57,58,59,60,61,62,63,63,63,63,63,62,62,62,62,62,62,62,63,63,64,64,65,65,66,66,66,66,66,66,66,66,66,66,66,65,65,65,65,65,65,65,64,64,64,64,64,64,64,63,63,63,63,63,63,62,62,63,63,64,64,65,65,65,65,65,64,64,64,64,64,64,64,64,63,63,63,63,63,63,63,63,63,63,64,65,65,65,65,65,65,65,65,65,65,64,64,64,64,64,64,64,64,64,64,64,64,64,64,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,62,62,62,62,62,62,62,62,62,61,61,61,61,61,61,60,60,60,60,60,59,59,59,59,59,58,58,58,58,57,57,57,57,57,57,56,56,56,56,56,56,56,55,55,55,55,55,55,54,54,54,54,54,54,54,53,53,53,53,53,53,53,53,52,52,52,52,52,52,52,52,51,51,51,51,51,51,51,51,50,50,50,50,50,50,50,49,49,49,49,49,49,49,48,48,48,48,48,48,47,47,47,47,47,46,46,46,46,46,46,45,45,45,45,45,45,45,44,44,44,45,46,48,50,51,52,52,51,51,51,51,51,51,51,50,50,50,50,50,50,49,49,49,49,49,49,49,48,48,48,48,48,48,47,47,47,47,47,47,46,46,46,46,46,46,46,45,45,45,45,45,45,45,44,44,44,44,44,44,43,43,43,43,43,43,42,42,42,42,42,42,41,41,41,41,41,41,40,40,40,40,40,40,39,39,39,39,39,39,38,39,41,43,45,46,47,47,47,47,46,46,46,46,46,46,46,45,45,45,45,45,45,44,44,44,44,44,44,43,43,43,43,43,43,42,42,42,42,42,42,41,41,41,41,41,41,40,40,40,40,40,39,39,39,39,39,39,38,38,38,38,37,37,37,37,37,39,41,43,45,45,45,45,45,45,45,44,44,44,44,44,44,43,43,43,43,43,42,42,42,42,42,42,42,41,41,41,41,41,41,41,41,41,40,40,41,43,45,46,48,49,49,49,48,48,49,50,52,53,54,55,55,54,54,54,54,56,57,58,59,59,59,59,59,59,59,60,61,61,62,62,62,62,62,61,61,61,61,61,60,60,60,60,59,59,59,59,59,58,58,58,58,57,57,57,57,57,56,56,56,56,56,55,55,55,55,54,54,54,54,54,54,53,53,53,53,53,52,52,52,52,52,52,52,51,51,51,51,51,51,51,50,50,50,50,50,50,50,50,49,50,52,53,54,56,56,56,56,56,56,56,56,56,55,55,55,55,55,55,55,55,54,54,54,54,54,54,54,53,53,54,55,56,58,59,59,59,59,59,59,59,58,58,58,58,59,60,60,61,62,63,63,64,64,65,65,65,65,65,64,64,64,64,64,64,64,63,63,63,63,63,63,63,62,62,62,62,62,62,62,61,61,61,61,61,61,61,60,60,60,61,61,62,63,63,64,64,65,65,66,66,66,65,65,65,65,65,65,65,64,64,64,64,64,64,64,63,63,63,63,63,63,63,62,62,62,62,62,62,61,61,61,61,61,61,60,60,60,60,60,60,60,59,59,59,59,59,59,58,58,58,58,58,58,58,57,57,57,57,57,57,56,56,56,56,56,56,55,55,55,56,57,58,59,60,61,60,60,60,60,60,60,59,59,59,59,59,59,59,58,58,58,58,58,58,57,57,57,57,57,57,57,56,56,56,56,56,56,55,55,55,55,55,55,54,54,54,54,54,54,53,53,53,53,53,53,53,52,52,52,52,52,52,51,51,51,51,51,51,51,51,50,50,50,50,50,50,50,50,49,50,52,53,54,56,56,56,56,55,55,55,55,55,54,54,55,56,57,58,59,60,60,59,59,59,59,60,61,61,62,62,62,62,61,61,61,61,60,60,60,60,59,59,59,58,58,58,58,57,57,57,57,56,56,56,56,58,59,60,60,61,61,60,60,60,60,60,59,59,59,59,59,59,58,58,58,58,58,58,57,57,57,57,57,57,57,58,59,60,61,61,61,61,60,60,60,60,59,59,59,59,58,58,58,58,57,57,57,56,56,56,55,55,55,55,54,54,54,54,53,53,53,53,52,52,52,52,52,51,51,51,51,50,50,50,50,50,49,49,49,49,48,48,48,48,48,47,47,47,47,46,46,46,46,46,45,45,45,45,45,45,44,44,44,44,44,44,43,43,43,43,43,42,42,42,42,41,41,41,41,41,40,40,40,40,40,40,39,39,39,39,39,38,38,38,38,38,37,37,37,37,37,36,36,36,36,35,35,35,35,35,34,34,34,34,34,33,33,33,33,33,32,32,32,32,32,31,31,31,31,31,31,31,30,30,30,30,30,30,30,29,29,29,29,29,29,29,28,28,28,28,28,28,28,28,27,27,27,27,27,27,27,26,26,26,26,26,26,26,25,25,25,25,25,25,25,24,24,24,24,24,24,23,23,23,23,23,22,22,22,22,22,22,21,21,21,19,14,0};
+uint8_t lut[642] = {0,13,18,22,26,29,31,33,34,35,35,36,37,37,38,39,39,40,41,41,42,43,43,44,44,45,45,46,47,47,48,48,49,49,49,49,49,48,48,49,49,50,50,51,51,52,52,53,53,53,53,53,52,52,52,52,51,51,51,51,52,52,53,53,54,54,54,55,55,54,54,54,53,53,53,52,52,51,51,51,50,50,50,49,49,49,48,48,48,48,49,49,49,49,49,48,48,48,47,47,47,47,47,47,48,48,49,50,50,51,51,52,53,53,54,54,55,55,55,55,55,55,55,55,55,55,55,55,55,55,56,56,57,57,58,58,59,59,60,60,60,59,59,59,59,59,59,59,59,59,59,59,59,58,58,58,58,58,58,58,58,58,58,58,58,57,57,57,57,57,57,57,57,57,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,54,54,54,54,54,54,54,54,54,54,53,53,53,53,53,53,53,53,53,54,54,55,55,56,56,56,56,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,52,52,52,52,52,52,52,52,52,52,52,52,51,51,51,51,51,51,51,51,51,51,51,51,51,51,51,51,51,51,51,51,51,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,54,54,54,54,54,54,54,54,54,54,54,54,54,54,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,55,55,55,55,55,55,54,54,54,54,54,53,53,53,52,52,52,52,51,51,51,51,51,51,52,52,52,53,53,53,54,54,54,53,53,53,53,52,52,52,51,51,52,52,52,53,53,54,54,54,55,55,55,54,54,54,53,54,54,54,55,55,55,54,54,54,54,54,54,55,55,55,56,56,56,56,56,56,56,55,55,55,55,54,54,54,53,53,53,53,52,52,52,52,52,51,51,51,51,51,50,50,50,50,50,50,50,50,51,52,52,52,52,52,52,52,52,52,52,51,51,51,51,51,51,51,51,51,51,51,51,51,51,50,50,50,50,50,50,50,50,49,49,49,49,48,48,48,47,47,47,46,46,45,45,45,44,44,43,43,43,42,42,41,41,41,40,40,40,39,39,39,38,38,38,38,37,37,37,36,36,36,36,35,35,35,35,34,34,34,34,33,33,33,32,32,32,32,31,31,31,30,30,30,30,29,29,29,29,28,28,28,27,27,27,26,26,25,18,0};
 uint16_t lut_size = (sizeof(lut)/sizeof(lut[0]));
 
 //ADC
@@ -80,39 +82,41 @@ uint8_t data_trans_message[8] = {0x41,0x42,0x43,0x44,0x45,0x46,0x47,0x48};
 
 void CAN_Receive(void){
     RECmsg.data = data_rec_message;
-    if(CAN1_Receive(&RECmsg)){
+    while(CAN1_Receive(&RECmsg)){
         
-        if(RECmsg.msgId==0x129){ //saves button and switch positions
-            VcuState_A.VCUBits_1 = RECmsg.data[0];
-            VcuState_B.VCUBits_2 = RECmsg.data[1];
-            
-        }else if(RECmsg.msgId==0x123){ //saves RPM values
+        if(RECmsg.msgId==0x129){ //saves sw table
+            VcuState_A.bits = RECmsg.data[0];
+        }else if(RECmsg.msgId==0x123){ //saves RPM value
             update_cnt_100ms = 0;
             flags.update_synced = true;
             encoder.HighByte = RECmsg.data[0];
             encoder.LowByte = RECmsg.data[1];
-            
-    
-            if(!RECmsg.data[2] && RECmsg.data[0] && VcuState_A.REVERSE){
+            if(!RECmsg.data[2] && RECmsg.data[0] && StwState.REVERSE){
                 vehicle.reverse = true;
             }
-        }else if(RECmsg.msgId==0x700){ //saves battery current and voltage values
-            battery_current.HighByte = RECmsg.data[0];
-            battery_current.LowByte = RECmsg.data[1];
-            battery_voltage.HighByte = RECmsg.data[2];
-            battery_voltage.LowByte = RECmsg.data[3];
+        } else if (RECmsg.msgId==0x150) {
+            vehicle.lap_number = RECmsg.data[0];
+            vehicle.lap_sec = ((RECmsg.data[1] << 8) | RECmsg.data[2]) / 100.0F;
+            vehicle.distance = ((RECmsg.data[3] << 8) | RECmsg.data[4]) / 20.0F;
+            vehicle.delta_time_sec = ((RECmsg.data[5] << 8) | RECmsg.data[6]) / 100.0F;
         }
+//        else if(RECmsg.msgId==0x700){ //saves battery current and voltage values
+//            battery_current.HighByte = RECmsg.data[0];
+//            battery_current.LowByte = RECmsg.data[1];
+//            battery_voltage.HighByte = RECmsg.data[2];
+//            battery_voltage.LowByte = RECmsg.data[3];
+//        }
     }
 }
 
 void CAN_Transmit(void){
-    TRANSmsg.msgId = 0x111;
-    TRANSmsg.field.frameType = CAN_FRAME_DATA;
-    TRANSmsg.field.idType = CAN_FRAME_STD;
-    TRANSmsg.field.dlc = CAN_DLC_8;
-    TRANSmsg.data = data_trans_message;
-
-    CAN1_Transmit(CAN_PRIORITY_HIGH, &TRANSmsg);
+//    TRANSmsg.msgId = 0x111;
+//    TRANSmsg.field.frameType = CAN_FRAME_DATA;
+//    TRANSmsg.field.idType = CAN_FRAME_STD;
+//    TRANSmsg.field.dlc = CAN_DLC_8;
+//    TRANSmsg.data = data_trans_message;
+//
+//    CAN1_Transmit(CAN_PRIORITY_HIGH, &TRANSmsg);
 }
 
 void CalculateDisplayValues(void){
@@ -144,56 +148,56 @@ void CalculateDisplayValues(void){
     
     
     //Distance
-    vehicle.distance += ((vehicle.speed)/72); //values in meters | /72 if used it every 50 ms /3600 if used it every 1 ms
+//    vehicle.distance += ((vehicle.speed)/72); //values in meters | /72 if used it every 50 ms /3600 if used it every 1 ms
     
     //Voltage
-    vehicle.voltage = (double)battery_voltage.Word/1000;
+//    vehicle.voltage = (double)battery_voltage.Word/1000;
     
     //Joule
-    vehicle.joule = (((double)((int16_t)battery_current.Word))/300+0.047) * (((double)battery_voltage.Word)/1000) * 0.05;
-    if(vehicle.lap_number > 0){
-        vehicle.lap_joule += vehicle.joule; //added every 50 ms
-        vehicle.total_joule += vehicle.joule;
-    }else{
-        vehicle.lap_joule = 0;
-    }
+//    vehicle.joule = (((double)((int16_t)battery_current.Word))/300+0.047) * (((double)battery_voltage.Word)/1000) * 0.05;
+//    if(vehicle.lap_number > 0){
+//        vehicle.lap_joule += vehicle.joule; //added every 50 ms
+//        vehicle.total_joule += vehicle.joule;
+//    }else{
+//        vehicle.lap_joule = 0;
+//    }
     
     
     
     //Lap number
-    if (VcuState_A.LAP==1 && !flags.debounce){
-//    if(BUTTON_R_GetValue() && !flags.debounce){ //this is for testing, replace with the line above
-        vehicle.lap_number++;
-        flags.debounce = true;
-        vehicle.previous_lap_sec = vehicle.lap_sec;
-        vehicle.lap_sec = 0;
-        vehicle.lap_ms = 0;
-        vehicle.distance = 0.;
-        
-        if (vehicle.lap_number == TOTAL_LAPS + 2){
-            vehicle.lap_number = 0;
-        }
-        
-        //Delta Time
-        if(vehicle.lap_number < 2){
-            vehicle.delta_time_sec = 0;
-            vehicle.best_lap_joule = 0;
-        }else if(vehicle.lap_number == 2){
-            vehicle.delta_time_sec = vehicle.previous_lap_sec - OPTIMAL_LAP_TIME;
-            vehicle.best_lap_joule = vehicle.lap_joule;
-        }else if(vehicle.lap_number > 2){
-            vehicle.delta_time_sec = vehicle.previous_lap_sec - OPTIMAL_LAP_TIME + vehicle.delta_time_sec;
-            if(vehicle.lap_joule < vehicle.best_lap_joule){
-                vehicle.best_lap_joule = vehicle.lap_joule;
-            }
-        }
-        vehicle.lap_joule = 0;
-    }
-    
-    if(vehicle.lap_number==0){
-        vehicle.lap_sec = 0;
-        vehicle.distance = 0;
-    }
+//    if (VcuState_A.LAP==1 && !flags.debounce){
+////    if(BUTTON_R_GetValue() && !flags.debounce){ //this is for testing, replace with the line above
+//        vehicle.lap_number++;
+//        flags.debounce = true;
+//        vehicle.previous_lap_sec = vehicle.lap_sec;
+//        vehicle.lap_sec = 0;
+//        vehicle.lap_ms = 0;
+//        vehicle.distance = 0.;
+//        
+//        if (vehicle.lap_number == TOTAL_LAPS + 2){
+//            vehicle.lap_number = 0;
+//        }
+//        
+//        //Delta Time
+//        if(vehicle.lap_number < 2){
+//            vehicle.delta_time_sec = 0;
+//            vehicle.best_lap_joule = 0;
+//        }else if(vehicle.lap_number == 2){
+//            vehicle.delta_time_sec = vehicle.previous_lap_sec - OPTIMAL_LAP_TIME;
+//            vehicle.best_lap_joule = vehicle.lap_joule;
+//        }else if(vehicle.lap_number > 2){
+//            vehicle.delta_time_sec = vehicle.previous_lap_sec - OPTIMAL_LAP_TIME + vehicle.delta_time_sec;
+//            if(vehicle.lap_joule < vehicle.best_lap_joule){
+//                vehicle.best_lap_joule = vehicle.lap_joule;
+//            }
+//        }
+//        vehicle.lap_joule = 0;
+//    }
+//    
+//    if(vehicle.lap_number==0){
+//        vehicle.lap_sec = 0;
+//        vehicle.distance = 0;
+//    }
 
 } 
 
@@ -238,13 +242,13 @@ void UpdateDisplay(uint8_t brightness){
         draw_text(tx_buf, itoa(TOTAL_LAPS), 130, 12, brightness);
         
     // DRIVE MODE
-        if(VcuState_A.DRIVE==1){
-          draw_char(tx_buf, 'D', 59, 33, brightness);
-        }else if(VcuState_A.REVERSE==1){ 
-          draw_char(tx_buf, 'R', 59, 33, brightness);
-        }else{
-          draw_char(tx_buf, 'N', 59, 33, brightness);
-        }
+//        if(VcuState_A.DRIVE==1){
+//          draw_char(tx_buf, 'D', 59, 33, brightness);
+//        }else if(VcuState_A.REVERSE==1){ 
+//          draw_char(tx_buf, 'R', 59, 33, brightness);
+//        }else{
+//          draw_char(tx_buf, 'N', 59, 33, brightness);
+//        }
            
         
     // TIME    
@@ -269,14 +273,14 @@ void UpdateDisplay(uint8_t brightness){
       
         
     // LAP JOULE
-        select_font(&Font5x7FixedMono);
-        draw_text(tx_buf, "LAPJ:", 0, 45, brightness);
-        draw_text(tx_buf, itoa(vehicle.lap_joule), 30, 45, brightness);
+//        select_font(&Font5x7FixedMono);
+//        draw_text(tx_buf, "LAPJ:", 0, 45, brightness);
+//        draw_text(tx_buf, itoa(vehicle.lap_joule), 30, 45, brightness);
         
     // BEST JOULE
-        select_font(&Font5x7FixedMono);
-        draw_text(tx_buf, "BESTJ:", 78, 46, brightness);
-        draw_text(tx_buf, itoa(vehicle.best_lap_joule), 114, 46, brightness);  
+//        select_font(&Font5x7FixedMono);
+//        draw_text(tx_buf, "BESTJ:", 78, 46, brightness);
+//        draw_text(tx_buf, itoa(vehicle.best_lap_joule), 114, 46, brightness);  
         
     // MISCELLANEOUS
         select_font(&Org_01);
@@ -313,10 +317,10 @@ void UpdateDisplay(uint8_t brightness){
         }
         
         //voltage
-        draw_text(tx_buf, itoa(vehicle.voltage), 0, 60, brightness);
-        draw_text(tx_buf, ".", 12, 60, brightness);
-        draw_text(tx_buf, itoa((vehicle.voltage-(uint8_t)vehicle.voltage)*10), 14, 60, brightness);
-        draw_text(tx_buf, "V", 21, 60, brightness);
+//        draw_text(tx_buf, itoa(vehicle.voltage), 0, 60, brightness);
+//        draw_text(tx_buf, ".", 12, 60, brightness);
+//        draw_text(tx_buf, itoa((vehicle.voltage-(uint8_t)vehicle.voltage)*10), 14, 60, brightness);
+//        draw_text(tx_buf, "V", 21, 60, brightness);
         
         //distance in meters
         draw_text(tx_buf, "DIST:", 30, 60, brightness);
