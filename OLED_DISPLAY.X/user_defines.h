@@ -7,8 +7,8 @@
 
 #include <xc.h> // include processor files - each processor file is guarded.  
 
-#define TOTAL_LAPS                  (uint8_t) 11   //Total number of laps in the race
-#define OPTIMAL_LAP_TIME            (uint16_t) 191 //optimal lap time in seconds
+#define TOTAL_LAPS                  (uint8_t) 7   //Total number of laps in the race
+#define OPTIMAL_LAP_TIME            (uint16_t) 189 //optimal lap time in seconds
 #define DISTANCE_STEP               (float)0 //how many meters ahead is the LUT value we want to give
 #define LUT_DISTANCE_RESOLUTION     (uint8_t)2 //in meters | may change depending on measuring method
 
