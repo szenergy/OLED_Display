@@ -10,6 +10,7 @@
 
 #include "xc.h"
 #include "user.h"
+#include "mcc_generated_files/tmr1.h"
 
 
 volatile struct FLAGS flags = {};
@@ -19,9 +20,9 @@ volatile struct VEHICLE vehicle = {};
 volatile CAN_Bytes encoder = {};
 //volatile CAN_Bytes battery_current = {};
 //volatile CAN_Bytes battery_voltage = {};
-volatile VCU_STATE_A VcuState_A = {};
+volatile VCU_STATE_A VCU_A = {};
 //volatile VCU_STATE_B VcuState_B = {};
-volatile STW_STATE_BUTTONS StwState = {};
+volatile STW_STATE_BUTTONS Steering_Wheel = {};
 
 double rpm_m_average = 0;
 double rpm_avg[3];
@@ -62,8 +63,8 @@ uint16_t right_brightness = 0;
 uint16_t adaptive_brightness = 0;
 uint16_t prev_adaptive_brightness = 0;
 
-bool blank_toggle = false;
-bool stw_fn1_debnc = false;
+bool display_off = false;
+bool stw_fn1_prev = false;
 
 //TIMER VARIABLES
 uint32_t tmr1_cnt = 0;
@@ -83,8 +84,8 @@ uint32_t cnt = 0;
 bool cnt_flag = false;
 
 //CAN VARIABLES
-CAN_MSG_OBJ RECmsg;
-uint8_t data_rec_message[8];
+//CAN_MSG_OBJ RECmsg;
+//uint8_t data_rec_message[8];
 
 //CAN_MSG_OBJ TRANSmsg;
 //uint8_t data_trans_message[8] = {0x41,0x42,0x43,0x44,0x45,0x46,0x47,0x48};
@@ -92,17 +93,31 @@ uint8_t data_rec_message[8];
 float vesc_voltage = 0;
 float vesc_current = 0;
 
+CAN_MSG_OBJ RECmsg;
+uint8_t data_rec_message[8];
+
 bool _CAN_Read_Helper()  {
-    for(size_t i = 0; i < sizeof data_rec_message; i++) data_rec_message[i] = 0;
+    for(size_t i = 0; i < 8; i++) data_rec_message[i] = 0;
     RECmsg.data = data_rec_message;
     return CAN1_Receive(&RECmsg);
 }
 
+void _Handle_Display_Off() {
+    if (display_off) {
+        C1FEN1 = 0x08;
+        fill_buffer(tx_buf, 0);
+        send_buffer_to_OLED(tx_buf, 0, 0);
+        TMR1_Stop();
+    } else {
+        C1FEN1 = 0x7F;
+        TMR1_Start();
+    }
+}
+
 void CAN_Receive(void){
-    while(_CAN_Read_Helper()){
-        
+    while(_CAN_Read_Helper()){        
         if(RECmsg.msgId==0x129){ //saves sw table
-            VcuState_A.bits = RECmsg.data[0];
+            VCU_A.bits = RECmsg.data[0];
         }
         else if(RECmsg.msgId==0x123){ //saves RPM value
             update_cnt_100ms = 0;
@@ -117,16 +132,25 @@ void CAN_Receive(void){
             vehicle.lap_number = RECmsg.data[0];
             vehicle.lap_sec =  ((RECmsg.data[1] << 8) | RECmsg.data[2]) / 100.0F;
             vehicle.distance = ((RECmsg.data[3] << 8) | RECmsg.data[4]) / 20.0F;
-            vehicle.delta_time_sec = ((RECmsg.data[5] << 8) | RECmsg.data[6]) / 100.0F;
+            vehicle.delta_time_sec = ((RECmsg.data[6] << 8) | RECmsg.data[7]) / 100.0F;
         }
         else if (RECmsg.msgId==0x190) {
-            StwState.bits = RECmsg.data[0];
+            Steering_Wheel.bits = RECmsg.data[0];            
+            if (Steering_Wheel.FN1 == true && stw_fn1_prev == false) {
+                display_off = !display_off;
+                _Handle_Display_Off();
+            }
+            stw_fn1_prev = Steering_Wheel.FN1;
         }
-        else if (RECmsg.msgId=0x1B51) {
+        else if (RECmsg.msgId==0x1B51) {
             vesc_voltage = ((RECmsg.data[5]<<8) | RECmsg.data[4]) / 10.0F;
         }
-        else if (RECmsg.msgId=0x1051) {
+        else if (RECmsg.msgId==0x1051) {
             vesc_current = ((RECmsg.data[5]<<8) | RECmsg.data[4]) / 10.0F;
+        }
+        else if (RECmsg.msgId==0x4028001) {
+            vehicle.voltage = ((RECmsg.data[0]<<8) | RECmsg.data[1]) / 10.0F;
+            vehicle.current = (((int16_t)(RECmsg.data[2]<<8) | RECmsg.data[3])) / 10.0F - 30000;
         }
 //        else if(RECmsg.msgId==0x700){ //saves battery current and voltage values
 //            battery_current.HighByte = RECmsg.data[0];
@@ -190,8 +214,7 @@ void CalculateDisplayValues(void){
 //    vehicle.voltage = (double)battery_voltage.Word/1000;
     
     //New joule
-    vehicle.joule = vesc_current*vesc_voltage*0.05;
-    vehicle.lap_joules[vehicle.lap_number] += vehicle.joule;
+    vehicle.lap_joules[vehicle.lap_number] += vesc_current*vesc_voltage*0.05;
     vehicle.lap_joule = vehicle.lap_joules[vehicle.lap_number];
     
     //Joule
@@ -319,8 +342,8 @@ void UpdateDisplay(uint8_t brightness){
         
     // CAN message count
 //        select_font(&Font5x7FixedMono);
-//        draw_text(tx_buf, "MSGS:", 0, 45, brightness);
-//        draw_text(tx_buf, itoa(can_msg_num), 30, 45, brightness);
+//        draw_text(tx_buf, "MSGS:", 0, 60, brightness);
+//        draw_text(tx_buf, itoa(can_msg_num), 30, 60, brightness);
         
     // LAST LAP JOULE
         select_font(&Font5x7FixedMono);
@@ -331,10 +354,10 @@ void UpdateDisplay(uint8_t brightness){
             draw_text(tx_buf, itoa(vehicle.lap_joules[vehicle.lap_number-1]), 30, 45, brightness);
         }
         
-    // LAP JOULE
+    // Distance
         select_font(&Font5x7FixedMono);
-        draw_text(tx_buf, "LAPJ:", 78, 46, brightness);
-        draw_text(tx_buf, itoa(vehicle.lap_joule), 109, 46, brightness);  
+        draw_text(tx_buf, "DIST:", 78, 46, brightness);
+        draw_text(tx_buf, itoa(vehicle.distance), 109, 46, brightness);  
         
     // MISCELLANEOUS
         select_font(&Org_01);
@@ -371,14 +394,20 @@ void UpdateDisplay(uint8_t brightness){
         }
         
         //voltage
-        draw_text(tx_buf, itoa(vehicle.voltage), 0, 60, brightness);
-        draw_text(tx_buf, ".", 12, 60, brightness);
-        draw_text(tx_buf, itoa((vehicle.voltage-(uint8_t)vehicle.voltage)*10), 14, 60, brightness);
-        draw_text(tx_buf, "V", 21, 60, brightness);
+//        draw_text(tx_buf, itoa(vehicle.voltage), 0, 60, brightness);
+//        draw_text(tx_buf, ".", 12, 60, brightness);
+//        draw_text(tx_buf, itoa((vehicle.voltage-(uint8_t)vehicle.voltage)*10), 14, 60, brightness);
+//        draw_text(tx_buf, "V", 21, 60, brightness);
+//        
+//        //current
+//        draw_text(tx_buf, itoa(vehicle.current*-1), 35, 60, brightness);
+//        draw_text(tx_buf, ".", 47, 60, brightness);
+//        draw_text(tx_buf, itoa((vehicle.current-(uint8_t)vehicle.current)*10), 49, 60, brightness);
+//        draw_text(tx_buf, "A", 56, 60, brightness);
         
-        //distance in meters
-        draw_text(tx_buf, "DIST:", 30, 60, brightness);
-        draw_text(tx_buf, itoa(vehicle.distance), 57, 60, brightness);
+        //old distance in meters
+//        draw_text(tx_buf, "DIST:", 60, 60, brightness);
+//        draw_text(tx_buf, itoa(vehicle.distance), 88, 60, brightness);
         
         //display update time in milliseconds
 //        draw_text(tx_buf, "updT:", 87, 60, brightness);
@@ -418,9 +447,9 @@ void UpdateDisplay(uint8_t brightness){
         }
         
     // ACC CHEVRON 
-        if(vehicle.lap_number>0){
-        if(lut[(int)offset] > vehicle.speed*2) AccChevron(56, 17);
-        }
+//        if(vehicle.lap_number>0){
+//        if(lut[(int)offset] > vehicle.speed*2) AccChevron(56, 17);
+//        }
         
         send_buffer_to_OLED(tx_buf, 0, 0);    
         
@@ -562,19 +591,20 @@ void AccChevron(uint16_t x_pos, uint16_t y_pos){
     c_bottom_brightness -= 2;
 }
 
-void GoToSleep(void){
-    //add lines if necessary
-    //RCONbits.SLEEP = 0;
+void User_Idle_Normal(void){
+    // Reset WatchDogTimer and Idle wakeup bits
     RCONbits.IDLE = 0;
     RCONbits.WDTO = 0;
-    //Disable DMA interrupts
+    // Disable DMA interrupts in idle
     IPC1bits.DMA0IP = 0;
     IPC6bits.DMA2IP = 0;
-    //ADC disabled in idle ADSIDL = 1
-    Idle();   
-}
-
-void ReturnFromSleep(void){
+    // ADC disabled in idle
+    AD1CON1bits.ADSIDL = 1;
+    
+    // Idle mode disables the CPU but keep peripherals running
+    Idle();
+    
+    // Check what woke up the CPU
     if(RCONbits.IDLE == 1){
         RCONbits.IDLE = 0;
         if(RCONbits.WDTO == 1){
@@ -584,7 +614,6 @@ void ReturnFromSleep(void){
         IPC1bits.DMA0IP = 1;
         IPC6bits.DMA2IP = 1;
     }
-    //add lines if necessary
 }
 
 

@@ -5,12 +5,14 @@
 #include "SSD1322_API.h"
 #include "SSD1322_GFX.h"
 #include "SSD1322_HW_Driver.h"
+#include "mcc_generated_files/tmr1.h"
 /*
                          Main application
  */
 
 
-
+bool rb_sw = false;
+bool rb_sw_prev = false;
 
 
 int main(void)
@@ -22,8 +24,8 @@ int main(void)
     CAN_STB_SetLow();
     CAN1_Initialize();
     
-    TMR2_Start();//delay timer
-
+    //TMR2_Start();//delay timer
+    
     SSD1322_API_init();
     set_buffer_size(256, 64);
 //    CAN1_TransmitEnable();
@@ -42,35 +44,45 @@ int main(void)
 //        if(CAN1_ReceivedMessageCountGet()){
 //            CAN_Receive();
 //        }
+        
+        rb_sw = BUTTON_R_GetValue();
+        if (rb_sw == true && rb_sw_prev == false) {
+            display_off = !display_off;
+            _Handle_Display_Off();
+        }
+        rb_sw_prev = rb_sw;
+        
         if(flags.can_message_received){
             flags.can_message_received = false;
-            can_msg_num++;
+//            can_msg_num++;
+            LED_RG_Toggle();
             CAN_Receive();
         }
         
-        if(BUTTON_L_GetValue() && !flags.debounce){
-            flags.debounce = true;
-            flags.adaptive_brightness_mode = !flags.adaptive_brightness_mode; //toggle flag
+        if (display_off == false) {
+            if(BUTTON_L_GetValue() && !flags.debounce){
+                flags.debounce = true;
+                flags.adaptive_brightness_mode = !flags.adaptive_brightness_mode; //toggle flag
+            }
+
+            if(flags.update_display == true){
+                flags.update_display = false;
+                if(flags.adaptive_brightness_mode){ //make sure that the phototransistor resistors are 1Mohm for this to work properly
+                    CalculateDisplayValues();
+                    tmr1_cnt = 0;
+                    UpdateDisplay(adaptive_brightness);
+                    prev_adaptive_brightness = adaptive_brightness;
+                    display_update_cnt = tmr1_cnt;  
+                    GetBrightnessADC();
+                }else{
+                    CalculateDisplayValues();
+                    tmr1_cnt = 0;
+                    UpdateDisplay(DISPLAY_BRIGHTNESS);
+                    display_update_cnt = tmr1_cnt;  
+                } 
+            }
         }
-        
-        if(flags.update_display == true){
-            flags.update_display = false;
-            if(flags.adaptive_brightness_mode){ //make sure that the phototransistor resistors are 1Mohm for this to work properly
-                CalculateDisplayValues();
-                tmr1_cnt = 0;
-                UpdateDisplay(adaptive_brightness);
-                prev_adaptive_brightness = adaptive_brightness;
-                display_update_cnt = tmr1_cnt;  
-                GetBrightnessADC();
-            }else{
-                CalculateDisplayValues();
-                tmr1_cnt = 0;
-                UpdateDisplay(DISPLAY_BRIGHTNESS);
-                display_update_cnt = tmr1_cnt;  
-            } 
-        }
-        GoToSleep();
-        ReturnFromSleep();
+        User_Idle_Normal();
     }
     return 0;
 }

@@ -124,7 +124,7 @@ void SYSTEM_Initialize(void)
     CLOCK_Initialize();
     INTERRUPT_Initialize();
     SPI1_Initialize();
-    UART1_Initialize();
+    //UART1_Initialize();
     TMR2_Initialize();
     ADC1_Initialize();
     TMR1_Initialize();

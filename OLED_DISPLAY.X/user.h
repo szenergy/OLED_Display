@@ -15,19 +15,20 @@
 
 
 struct VEHICLE{
-    double rpm;
+    float rpm;
     bool reverse;
-    double speed;
-    double distance;
-    double prev_distance;
-    double joule;
+    float speed;
+    float distance;
+    float prev_distance;
+//    double joule;
     double lap_joule;
     float lap_joules[255];
-    double best_lap_joule;
-    double total_joule;
-    double voltage;
+//    double best_lap_joule;
+//    double total_joule;
+    float voltage;
+    float current;
     uint8_t lap_number;
-    uint16_t lap_ms;
+//    uint16_t lap_ms;
     uint16_t lap_sec;
     uint16_t previous_lap_sec;
     int16_t delta_time_sec;
@@ -71,8 +72,8 @@ typedef union  __attribute__((packed))
         uint8_t LAP        :1;
         uint8_t TS_L       :1;
         uint8_t TS_R       :1;
-        uint8_t FUNCTION1  :1;
-        uint8_t FUNCTION2  :1;
+        uint8_t RESET      :1;
+        uint8_t FN1        :1;
     };
 } STW_STATE_BUTTONS;
 
@@ -89,9 +90,9 @@ extern volatile struct FLAGS flags;
 extern volatile struct VEHICLE vehicle;
 extern volatile CAN_Bytes rpm;
 extern volatile CAN_Bytes bms;
-extern volatile VCU_STATE_A VcuState_A;
+extern volatile VCU_STATE_A VCU_A;
 //extern volatile VCU_STATE_B VcuState_B;
-extern volatile STW_STATE_BUTTONS StwState;
+extern volatile STW_STATE_BUTTONS Steering_Wheel;
 
 //ADC
 extern ADC1_CHANNEL left_phototrans;
@@ -128,6 +129,8 @@ extern bool cnt_flag;
 
 extern uint16_t can_msg_num;
 
+extern bool display_off;
+
 
 char* itoa(uint32_t value);
 void UpdateDisplay(uint8_t brightness);
@@ -137,8 +140,8 @@ void CalculateDisplayValues(void);
 void GetBrightnessADC(void);
 void SpeedArrow(double double_speed, uint8_t brightness);
 void AccChevron(uint16_t x_pos, uint16_t y_pos);
-void GoToSleep(void);
-void ReturnFromSleep(void);
+void User_Idle_Normal(void);
+void _Handle_Display_Off();
 
 
 #endif
