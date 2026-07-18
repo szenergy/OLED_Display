@@ -5,7 +5,6 @@ import re
 import pandas as pd
 import numpy as np
 
-
 def main():
     if len(sys.argv) != 2:
         print("Error: Invalid arguments.")
@@ -48,7 +47,7 @@ def main():
             except ValueError:
                 print("Error: Please enter a valid number.")
 
-        # 3. Read the selected sheet into a DataFrame
+        # Read the selected sheet into a DataFrame
         print(f"\nReading worksheet '{selected_sheet}'...")
         df = pd.read_excel(xl, sheet_name=selected_sheet)
 
@@ -66,6 +65,7 @@ def main():
             print("Error: No columns with numeric values found in the selected worksheet.")
             sys.exit(1)
 
+        # Select X-axis column (Distance reference)
         print("\nAvailable columns for distance reference:")
         for idx, col in enumerate(numeric_cols, 1):
             print(f"  [{idx}] {col}")
@@ -97,25 +97,27 @@ def main():
             except ValueError:
                 print("Error: Please enter a valid numeric value.")
 
+        # Select Y1-axis column (Speed)
+        available_speed_cols = [col for col in numeric_cols if col != x_col]
         print("\nAvailable columns for speed (km/h):")
-        for idx, col in enumerate(numeric_cols, 1):
-            if col == x_col: continue
-            print(f"  [{idx}] {col}{marker}")
+        for idx, col in enumerate(available_speed_cols, 1):
+            print(f"  [{idx}] {col}")
 
         while True:
-            choice = input(f"Select speed column (1 - {len(numeric_cols)}): ").strip()
+            choice = input(f"Select speed column (1 - {len(available_speed_cols)}): ").strip()
             if not choice:
                 continue
             try:
                 col_idx = int(choice) - 1
-                if 0 <= col_idx < len(numeric_cols):
-                    y_col = numeric_cols[col_idx]
+                if 0 <= col_idx < len(available_speed_cols):
+                    y1_col = available_speed_cols[col_idx]
                     break
                 else:
                     print("Error: Choice out of range.")
             except ValueError:
                 print("Error: Please enter a valid number.")
 
+        # Speed clamping options
         clamp_min = None
         clamp_max = None
         while True:
@@ -148,18 +150,35 @@ def main():
             else:
                 print("Error: Please answer 'y' or 'n'.")
 
-        clean_df = df[[x_col, y_col]].copy()
-        clean_df[x_col] = pd.to_numeric(clean_df[x_col], errors='coerce')
-        clean_df[y_col] = pd.to_numeric(clean_df[y_col], errors='coerce')
-        clean_df = clean_df.dropna().sort_values(by=x_col)
+        # Select Y2-axis column (Secondary / Acceleration)
+        available_sec_cols = [col for col in numeric_cols if col != x_col]
+        print("\nAvailable columns for acceleration points (uint8):")
+        for idx, col in enumerate(available_sec_cols, 1):
+            print(f"  [{idx}] {col}")
 
-        if clean_df.empty:
-            print("Error: No valid numeric data points found.")
+        while True:
+            choice = input(f"Select acceleration column (1 - {len(available_sec_cols)}): ").strip()
+            if not choice:
+                continue
+            try:
+                col_idx = int(choice) - 1
+                if 0 <= col_idx < len(available_sec_cols):
+                    y2_col = available_sec_cols[col_idx]
+                    break
+                else:
+                    print("Error: Choice out of range.")
+            except ValueError:
+                print("Error: Please enter a valid number.")
+
+        # Get overall distance reference bounds
+        x_values = pd.to_numeric(df[x_col], errors='coerce').dropna()
+        if x_values.empty:
+            print("Error: No valid numeric distance reference data found.")
             sys.exit(1)
+        x_min = float(x_values.min())
+        x_max = float(x_values.max())
 
-        x_min = float(clean_df[x_col].min())
-        x_max = float(clean_df[x_col].max())
-
+        # Generate distance grid
         x_grid = []
         curr = x_min
         epsilon = step * 1e-6
@@ -167,40 +186,82 @@ def main():
             x_grid.append(curr)
             curr += step
 
-        y_grid = np.interp(x_grid, clean_df[x_col], clean_df[y_col])
+        size = len(x_grid)
+
+        # 1. Process Speed (float)
+        clean_df1 = df[[x_col, y1_col]].copy()
+        clean_df1[x_col] = pd.to_numeric(clean_df1[x_col], errors='coerce')
+        clean_df1[y1_col] = pd.to_numeric(clean_df1[y1_col], errors='coerce')
+        clean_df1 = clean_df1.dropna().sort_values(by=x_col)
+
+        if clean_df1.empty:
+            print(f"Error: No valid numeric data found for speed column '{y1_col}'.")
+            sys.exit(1)
+
+        y_grid_speed = np.interp(x_grid, clean_df1[x_col], clean_df1[y1_col])
 
         if clamp_min is not None:
-            y_grid = np.maximum(y_grid, clamp_min)
+            y_grid_speed = np.maximum(y_grid_speed, clamp_min)
         if clamp_max is not None:
-            y_grid = np.minimum(y_grid, clamp_max)
+            y_grid_speed = np.minimum(y_grid_speed, clamp_max)
 
-        y_uint16 = np.clip(np.floor(y_grid + 0.5), 0, 65535).astype(np.uint16)
+        # 2. Process Secondary (uint8)
+        clean_df2 = df[[x_col, y2_col]].copy()
+        clean_df2[x_col] = pd.to_numeric(clean_df2[x_col], errors='coerce')
+        clean_df2[y2_col] = pd.to_numeric(clean_df2[y2_col], errors='coerce')
+        clean_df2 = clean_df2.dropna().sort_values(by=x_col)
 
-        array_name = f"lut_{sanitize_c_identifier(y_col)}"
-        size = len(y_uint16)
+        if clean_df2.empty:
+            print(f"Error: No valid numeric data found for secondary column '{y2_col}'.")
+            sys.exit(1)
 
+        y_grid_sec = np.interp(x_grid, clean_df2[x_col], clean_df2[y2_col])
+
+        y_uint8 = np.clip(np.floor(y_grid_sec + 0.5), 0, 255).astype(np.uint8)
+
+        # Format arrays beautifully (12 elements per line)
+        line_size = 12
+
+        speed_lines = []
+        for i in range(0, size, line_size):
+            chunk = y_grid_speed[i:i+line_size]
+            chunk_str = ", ".join(f"{val:.4f}f" for val in chunk)
+            speed_lines.append(f"    {chunk_str}")
+        formatted_speed = ",\n".join(speed_lines)
+
+        sec_lines = []
+        for i in range(0, size, line_size):
+            chunk = y_uint8[i:i+line_size]
+            chunk_str = ", ".join(str(val) for val in chunk)
+            sec_lines.append(f"    {chunk_str}")
+        formatted_sec = ",\n".join(sec_lines)
+
+        # Setup macro value for step
+        if step.is_integer():
+            step_macro_val = f"(uint16_t){int(step)}"
+        else:
+            step_macro_val = f"{step}f"
+
+        # Generate header descriptions
         clamp_min_str = f"{clamp_min}" if clamp_min is not None else "None"
         clamp_max_str = f"{clamp_max}" if clamp_max is not None else "None"
-
-        # Format array elements beautifully, 12 per line
-        lines = []
-        line_size = 12
-        for i in range(0, size, line_size):
-            chunk = y_uint16[i:i+line_size]
-            chunk_str = ", ".join(str(val) for val in chunk)
-            lines.append(f"    {chunk_str}")
-        formatted_values = ",\n".join(lines)
 
         print("\n" + "="*50)
         print("GENERATED LOOKUP TABLE")
         print("="*50)
         print(f"// Source Excel file: {os.path.basename(file_path)}")
         print(f"// Sheet: {selected_sheet}")
-        print(f"// X-axis: {x_col} (min: {x_min:.4f}, max: {x_max:.4f}, step: {step})")
-        print(f"// Y-axis: {y_col} (clamp range: [{clamp_min_str}, {clamp_max_str}])")
-        print(f"// Total Elements: {size}")
-        print(f"const uint16_t {array_name}[{size}] = {{")
-        print(formatted_values)
+        print(f"// Distance column: {x_col} (min: {x_min:.4f}, max: {x_max:.4f}, step: {step})")
+        print(f"// Speed (km/h) column: {y1_col} (clamp range: [{clamp_min_str}, {clamp_max_str}])")
+        print(f"// Acceleration column: {y2_col}")
+        print(f"// Array length: {size}")
+        print(f"#define LUT_DISTANCE_STEP  {step_macro_val}")
+        print(f"#define LUT_SIZE           (uint16_t){size}")
+        print(f"const float lut_dist_kmh[LUT_SIZE] = {{")
+        print(formatted_speed)
+        print("};")
+        print(f"const uint8_t lut_acc[LUT_SIZE] = {{")
+        print(formatted_sec)
         print("};")
         print("="*50)
 
