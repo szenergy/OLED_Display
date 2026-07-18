@@ -33,6 +33,7 @@
       <itemPath>SSD1322_GFX.h</itemPath>
       <itemPath>SSD1322_HW_Driver.h</itemPath>
       <itemPath>user_defines.h</itemPath>
+      <itemPath>speed_graph_lut.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -498,6 +499,8 @@
         <property key="memories.programmemory" value="true"/>
         <property key="memories.programmemory.ranges" value="0-2ab7f"/>
         <property key="poweroptions.powerenable" value="false"/>
+        <property key="programmerToGoFilePath"
+                  value="/home/varma01/Documents/szenergy/OLED_Display/OLED_DISPLAY.X/debug/default/measuring_board_program_ptg"/>
         <property key="programmerToGoImageName" value="measuring_board_program_ptg"/>
         <property key="programoptions.donoteraseauxmem" value="false"/>
         <property key="programoptions.eraseb4program" value="true"/>

@@ -20,7 +20,6 @@ int main(void)
     
     SYSTEM_Initialize();
     
-    
     CAN_STB_SetLow();
     CAN1_Initialize();
     
@@ -38,24 +37,10 @@ int main(void)
     CAN1_OperationModeSet(CAN_NORMAL_2_0_MODE);
     
     
-    
     while (1){
-        
-//        if(CAN1_ReceivedMessageCountGet()){
-//            CAN_Receive();
-//        }
-        
-        rb_sw = BUTTON_R_GetValue();
-        if (rb_sw == true && rb_sw_prev == false) {
-            display_off = !display_off;
-            _Handle_Display_Off();
-        }
-        rb_sw_prev = rb_sw;
         
         if(flags.can_message_received){
             flags.can_message_received = false;
-//            can_msg_num++;
-            LED_RG_Toggle();
             CAN_Receive();
         }
         

@@ -20,18 +20,13 @@ struct VEHICLE{
     float speed;
     float distance;
     float prev_distance;
-//    double joule;
-    double lap_joule;
-    float lap_joules[255];
-//    double best_lap_joule;
-//    double total_joule;
+    float lap_joule;
+    float prev_lap_joule;
     float voltage;
     float current;
     uint8_t lap_number;
-//    uint16_t lap_ms;
-    uint16_t lap_sec;
-    uint16_t previous_lap_sec;
-    int16_t delta_time_sec;
+    float lap_sec;
+    float delta_time_sec;
     
 };
 
@@ -106,7 +101,7 @@ extern volatile uint8_t SPI_data[8];
 
 
 extern uint8_t tx_buf[256 * 64 / 2];
-extern double offset;
+//extern double offset;
 extern int display_update_cnt;
 
 
@@ -133,6 +128,8 @@ extern bool display_off;
 
 
 char* itoa(uint32_t value);
+int32_t map_value(int32_t x, int32_t min_x, int32_t max_x, int32_t min_to, int32_t max_to);
+
 void UpdateDisplay(uint8_t brightness);
 void CAN_Receive(void);
 void CAN_Transmit(void);

@@ -8,8 +8,11 @@
 #define SLAVE_I2C_GENERIC_RETRY_MAX 100
 #define SLAVE_I2C_GENERIC_DEVICE_TIMEOUT 50
 
+#include <math.h>
+
 #include "xc.h"
 #include "user.h"
+#include "speed_graph_lut.h"
 #include "mcc_generated_files/tmr1.h"
 
 
@@ -33,7 +36,7 @@ volatile uint8_t SPI_data[8]={0xa1,0xa2,0xa3,0xa4,0xa5,0xa6,0xa7,0xa8};
 //DISPLAY VARIABLES
 uint8_t tx_buf[256 * 64 / 2];
 //uint8_t tx_buf[64 * 64 / 2];
-double offset = 0;
+//uint16_t offset = 0;
 int display_update_cnt = 0;
 
 uint8_t c_top_brightness = 7;
@@ -41,19 +44,6 @@ uint8_t c_mid_brightness = 11;
 uint8_t c_bottom_brightness = 15;
 
 uint16_t can_msg_num = 0;
-
-//lut size must be changed in user.h too
-
-// old
-//uint8_t lut[1157]={0,13,18,22,26,29,31,34,36,38,40,42,44,46,47,49,50,52,53,55,56,57,58,59,60,61,62,63,63,63,63,63,62,62,62,62,62,62,62,63,63,64,64,65,65,66,66,66,66,66,66,66,66,66,66,66,65,65,65,65,65,65,65,64,64,64,64,64,64,64,63,63,63,63,63,63,62,62,63,63,64,64,65,65,65,65,65,64,64,64,64,64,64,64,64,63,63,63,63,63,63,63,63,63,63,64,65,65,65,65,65,65,65,65,65,65,64,64,64,64,64,64,64,64,64,64,64,64,64,64,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,62,62,62,62,62,62,62,62,62,61,61,61,61,61,61,60,60,60,60,60,59,59,59,59,59,58,58,58,58,57,57,57,57,57,57,56,56,56,56,56,56,56,55,55,55,55,55,55,54,54,54,54,54,54,54,53,53,53,53,53,53,53,53,52,52,52,52,52,52,52,52,51,51,51,51,51,51,51,51,50,50,50,50,50,50,50,49,49,49,49,49,49,49,48,48,48,48,48,48,47,47,47,47,47,46,46,46,46,46,46,45,45,45,45,45,45,45,44,44,44,45,46,48,50,51,52,52,51,51,51,51,51,51,51,50,50,50,50,50,50,49,49,49,49,49,49,49,48,48,48,48,48,48,47,47,47,47,47,47,46,46,46,46,46,46,46,45,45,45,45,45,45,45,44,44,44,44,44,44,43,43,43,43,43,43,42,42,42,42,42,42,41,41,41,41,41,41,40,40,40,40,40,40,39,39,39,39,39,39,38,39,41,43,45,46,47,47,47,47,46,46,46,46,46,46,46,45,45,45,45,45,45,44,44,44,44,44,44,43,43,43,43,43,43,42,42,42,42,42,42,41,41,41,41,41,41,40,40,40,40,40,39,39,39,39,39,39,38,38,38,38,37,37,37,37,37,39,41,43,45,45,45,45,45,45,45,44,44,44,44,44,44,43,43,43,43,43,42,42,42,42,42,42,42,41,41,41,41,41,41,41,41,41,40,40,41,43,45,46,48,49,49,49,48,48,49,50,52,53,54,55,55,54,54,54,54,56,57,58,59,59,59,59,59,59,59,60,61,61,62,62,62,62,62,61,61,61,61,61,60,60,60,60,59,59,59,59,59,58,58,58,58,57,57,57,57,57,56,56,56,56,56,55,55,55,55,54,54,54,54,54,54,53,53,53,53,53,52,52,52,52,52,52,52,51,51,51,51,51,51,51,50,50,50,50,50,50,50,50,49,50,52,53,54,56,56,56,56,56,56,56,56,56,55,55,55,55,55,55,55,55,54,54,54,54,54,54,54,53,53,54,55,56,58,59,59,59,59,59,59,59,58,58,58,58,59,60,60,61,62,63,63,64,64,65,65,65,65,65,64,64,64,64,64,64,64,63,63,63,63,63,63,63,62,62,62,62,62,62,62,61,61,61,61,61,61,61,60,60,60,61,61,62,63,63,64,64,65,65,66,66,66,65,65,65,65,65,65,65,64,64,64,64,64,64,64,63,63,63,63,63,63,63,62,62,62,62,62,62,61,61,61,61,61,61,60,60,60,60,60,60,60,59,59,59,59,59,59,58,58,58,58,58,58,58,57,57,57,57,57,57,56,56,56,56,56,56,55,55,55,56,57,58,59,60,61,60,60,60,60,60,60,59,59,59,59,59,59,59,58,58,58,58,58,58,57,57,57,57,57,57,57,56,56,56,56,56,56,55,55,55,55,55,55,54,54,54,54,54,54,53,53,53,53,53,53,53,52,52,52,52,52,52,51,51,51,51,51,51,51,51,50,50,50,50,50,50,50,50,49,50,52,53,54,56,56,56,56,55,55,55,55,55,54,54,55,56,57,58,59,60,60,59,59,59,59,60,61,61,62,62,62,62,61,61,61,61,60,60,60,60,59,59,59,58,58,58,58,57,57,57,57,56,56,56,56,58,59,60,60,61,61,60,60,60,60,60,59,59,59,59,59,59,58,58,58,58,58,58,57,57,57,57,57,57,57,58,59,60,61,61,61,61,60,60,60,60,59,59,59,59,58,58,58,58,57,57,57,56,56,56,55,55,55,55,54,54,54,54,53,53,53,53,52,52,52,52,52,51,51,51,51,50,50,50,50,50,49,49,49,49,48,48,48,48,48,47,47,47,47,46,46,46,46,46,45,45,45,45,45,45,44,44,44,44,44,44,43,43,43,43,43,42,42,42,42,41,41,41,41,41,40,40,40,40,40,40,39,39,39,39,39,38,38,38,38,38,37,37,37,37,37,36,36,36,36,35,35,35,35,35,34,34,34,34,34,33,33,33,33,33,32,32,32,32,32,31,31,31,31,31,31,31,30,30,30,30,30,30,30,29,29,29,29,29,29,29,28,28,28,28,28,28,28,28,27,27,27,27,27,27,27,26,26,26,26,26,26,26,25,25,25,25,25,25,25,24,24,24,24,24,24,23,23,23,23,23,22,22,22,22,22,22,21,21,21,19,14,0};
-
-// silesia 191s lap
-//uint8_t lut[642] = {0,13,18,22,26,29,31,33,34,35,35,36,37,37,38,39,39,40,41,41,42,43,43,44,44,45,45,46,47,47,48,48,49,49,49,49,49,48,48,49,49,50,50,51,51,52,52,53,53,53,53,53,52,52,52,52,51,51,51,51,52,52,53,53,54,54,54,55,55,54,54,54,53,53,53,52,52,51,51,51,50,50,50,49,49,49,48,48,48,48,49,49,49,49,49,48,48,48,47,47,47,47,47,47,48,48,49,50,50,51,51,52,53,53,54,54,55,55,55,55,55,55,55,55,55,55,55,55,55,55,56,56,57,57,58,58,59,59,60,60,60,59,59,59,59,59,59,59,59,59,59,59,59,58,58,58,58,58,58,58,58,58,58,58,58,57,57,57,57,57,57,57,57,57,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,54,54,54,54,54,54,54,54,54,54,53,53,53,53,53,53,53,53,53,54,54,55,55,56,56,56,56,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,52,52,52,52,52,52,52,52,52,52,52,52,51,51,51,51,51,51,51,51,51,51,51,51,51,51,51,51,51,51,51,51,51,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,54,54,54,54,54,54,54,54,54,54,54,54,54,54,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,55,55,55,55,55,55,54,54,54,54,54,53,53,53,52,52,52,52,51,51,51,51,51,51,52,52,52,53,53,53,54,54,54,53,53,53,53,52,52,52,51,51,52,52,52,53,53,54,54,54,55,55,55,54,54,54,53,54,54,54,55,55,55,54,54,54,54,54,54,55,55,55,56,56,56,56,56,56,56,55,55,55,55,54,54,54,53,53,53,53,52,52,52,52,52,51,51,51,51,51,50,50,50,50,50,50,50,50,51,52,52,52,52,52,52,52,52,52,52,51,51,51,51,51,51,51,51,51,51,51,51,51,51,50,50,50,50,50,50,50,50,49,49,49,49,48,48,48,47,47,47,46,46,45,45,45,44,44,43,43,43,42,42,41,41,41,40,40,40,39,39,39,38,38,38,38,37,37,37,36,36,36,36,35,35,35,35,34,34,34,34,33,33,33,32,32,32,32,31,31,31,30,30,30,30,29,29,29,29,28,28,28,27,27,27,26,26,25,18,0};
-
-// silesia 189s lap
-uint8_t lut[641] = {0,13,18,22,26,29,31,33,34,35,36,36,37,38,38,39,40,40,41,41,42,43,43,44,45,45,46,46,47,47,48,49,49,49,49,49,49,49,49,49,50,51,51,51,52,52,53,53,54,54,53,53,53,53,53,52,52,52,52,52,53,53,53,54,54,55,55,55,56,55,55,55,54,54,53,53,53,52,52,52,51,51,51,50,50,50,49,49,49,49,49,50,50,50,50,49,49,48,48,48,48,48,48,48,48,49,50,50,51,52,52,53,53,54,54,55,55,56,56,56,56,56,56,56,56,56,56,55,55,56,57,57,58,58,59,59,60,60,60,60,60,60,60,60,60,60,60,60,60,59,59,59,59,59,59,59,59,59,59,59,59,59,58,58,58,58,58,58,58,58,58,57,57,57,57,57,57,57,57,57,57,57,57,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,55,55,55,55,55,55,55,55,55,55,55,54,54,54,54,54,54,54,54,53,53,53,53,54,54,55,55,56,56,56,56,56,56,56,56,56,56,56,56,56,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,53,53,53,53,53,53,53,53,53,53,53,53,53,53,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,54,54,54,54,54,54,54,54,54,54,54,54,54,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,55,55,55,55,55,55,54,54,54,54,53,53,53,52,52,52,52,51,51,51,51,52,52,52,53,53,53,54,54,54,54,54,53,53,53,52,52,52,52,52,52,52,53,53,53,54,54,55,55,55,55,55,54,54,54,54,55,55,55,55,55,55,55,54,54,54,55,55,55,56,56,56,57,57,57,57,56,56,56,55,55,55,55,54,54,54,53,53,53,53,53,52,52,52,52,52,51,51,51,51,51,51,50,50,50,51,52,52,53,53,53,53,53,52,52,52,52,52,52,52,52,52,52,52,51,51,51,51,51,51,51,51,51,51,50,50,50,50,50,50,50,49,49,49,48,48,48,47,47,47,46,46,45,45,45,44,44,43,43,43,42,42,41,41,41,40,40,40,39,39,39,39,38,38,38,37,37,37,37,36,36,36,35,35,35,35,34,34,34,34,33,33,33,33,32,32,32,31,31,31,31,30,30,30,30,29,29,29,28,28,28,28,27,27,27,25,0};
-
-uint16_t lut_size = (sizeof(lut)/sizeof(lut[0]));
 
 //ADC
 ADC1_CHANNEL left_phototrans = channel_AN15;
@@ -124,9 +114,6 @@ void CAN_Receive(void){
             flags.update_synced = true;
             encoder.HighByte = RECmsg.data[0];
             encoder.LowByte = RECmsg.data[1];
-//            if(!RECmsg.data[2] && RECmsg.data[0]){
-//                v_reverse = true;
-//            }
         }
         else if (RECmsg.msgId==0x150) {
             vehicle.lap_number = RECmsg.data[0];
@@ -161,26 +148,7 @@ void CAN_Receive(void){
     }
 }
 
-void CAN_Transmit(void){
-//    TRANSmsg.msgId = 0x111;
-//    TRANSmsg.field.frameType = CAN_FRAME_DATA;
-//    TRANSmsg.field.idType = CAN_FRAME_STD;
-//    TRANSmsg.field.dlc = CAN_DLC_8;
-//    TRANSmsg.data = data_trans_message;
-//
-//    CAN1_Transmit(CAN_PRIORITY_HIGH, &TRANSmsg);
-}
-
 void CalculateDisplayValues(void){
-    
-//    if (StwState.FUNCTION2 && StwState.FUNCTION2 != stw_fn1_debnc) {
-//        blank_toggle = !blank_toggle;
-//        stw_fn1_debnc = StwState.FUNCTION2;
-//    }
-//    if (blank_toggle) {
-//        return;
-//    }
-    
     //RPM moving average
     rpm_avg[0] = ((double)encoder.Word)/100;
     rpm_avg[1] = rpm_avg[0];
@@ -192,77 +160,8 @@ void CalculateDisplayValues(void){
         vehicle.rpm = rpm_avg_sum/3;
     }
     
-    //exponential average
-    //ema_s = (EMA_A * vehicle.rpm) + ((1-EMA_A) * ema_s);
-    
-    
     //Speed
     vehicle.speed = vehicle.rpm * SPEED_MULT_FACTOR;
-//    if(BUTTON_L_GetValue()){//TESTING CODE START this is for testing, replace with the line above
-//        vehicle.speed += 0.2;
-//    }else{
-//        if(vehicle.speed>0){
-//            vehicle.speed -= 0.02;
-//        }   
-//    }//TESTING CODE END
-    
-    
-    //Distance
-//    vehicle.distance += ((vehicle.speed)/72); //values in meters | /72 if used it every 50 ms /3600 if used it every 1 ms
-    
-    //Voltage
-//    vehicle.voltage = (double)battery_voltage.Word/1000;
-    
-    //New joule
-    vehicle.lap_joules[vehicle.lap_number] += vesc_current*vesc_voltage*0.05;
-    vehicle.lap_joule = vehicle.lap_joules[vehicle.lap_number];
-    
-    //Joule
-//    vehicle.joule = (((double)((int16_t)battery_current.Word))/300+0.047) * (((double)battery_voltage.Word)/1000) * 0.05;
-//    if(vehicle.lap_number > 0){
-//        vehicle.lap_joule += vehicle.joule; //added every 50 ms
-//        vehicle.total_joule += vehicle.joule;
-//    }else{
-//        vehicle.lap_joule = 0;
-//    }
-    
-    
-    
-    //Lap number
-//    if (VcuState_A.LAP==1 && !flags.debounce){
-////    if(BUTTON_R_GetValue() && !flags.debounce){ //this is for testing, replace with the line above
-//        vehicle.lap_number++;
-//        flags.debounce = true;
-//        vehicle.previous_lap_sec = vehicle.lap_sec;
-//        vehicle.lap_sec = 0;
-//        vehicle.lap_ms = 0;
-//        vehicle.distance = 0.;
-//        
-//        if (vehicle.lap_number == TOTAL_LAPS + 2){
-//            vehicle.lap_number = 0;
-//        }
-//        
-//        //Delta Time
-//        if(vehicle.lap_number < 2){
-//            vehicle.delta_time_sec = 0;
-//            vehicle.best_lap_joule = 0;
-//        }else if(vehicle.lap_number == 2){
-//            vehicle.delta_time_sec = vehicle.previous_lap_sec - OPTIMAL_LAP_TIME;
-//            vehicle.best_lap_joule = vehicle.lap_joule;
-//        }else if(vehicle.lap_number > 2){
-//            vehicle.delta_time_sec = vehicle.previous_lap_sec - OPTIMAL_LAP_TIME + vehicle.delta_time_sec;
-//            if(vehicle.lap_joule < vehicle.best_lap_joule){
-//                vehicle.best_lap_joule = vehicle.lap_joule;
-//            }
-//        }
-//        vehicle.lap_joule = 0;
-//    }
-//    
-//    if(vehicle.lap_number==0){
-//        vehicle.lap_sec = 0;
-//        vehicle.distance = 0;
-//    }
-
 } 
 
 // brightness 0-15
@@ -270,191 +169,136 @@ void UpdateDisplay(uint8_t brightness){
     
     //clear display buffer
         fill_buffer(tx_buf, 0);
-        
-//        if (blank_toggle) {
-//            return;
-//        }
-           
+    
     // SPEED
-        select_font(&Font5x7FixedMono);
-        draw_text(tx_buf, "SPD", 0, 7, brightness);
         select_font(&FreeSans9pt7b);
-        if(vehicle.speed<10){ //this part makes the decimal point fixed
-            draw_text(tx_buf, itoa(vehicle.speed), 28, 12, brightness);
+        if(vehicle.speed<10){ // fixed decimal point with padding
+            draw_char(tx_buf, '0', 0, 14, 1);
+            draw_text(tx_buf, itoa(vehicle.speed), 10, 14, brightness);
         }else{
-            draw_text(tx_buf, itoa(vehicle.speed), 18, 12, brightness);
+            draw_text(tx_buf, itoa(vehicle.speed), 0, 14, brightness);
         }
-        draw_char(tx_buf, '.', 38, 12, brightness);
-        
-        draw_text(tx_buf, itoa((vehicle.speed-(uint8_t)vehicle.speed)*10), 41, 12, brightness);
-        
-    // LAPS      
+        draw_char(tx_buf, '.', 20, 14, brightness);
+        draw_text(tx_buf, itoa((vehicle.speed-(uint8_t)vehicle.speed)*10), 24, 14, brightness);
         select_font(&Font5x7FixedMono);
-        draw_text(tx_buf, "LAPS", 78, 7, brightness);
+        draw_text(tx_buf, "KPH", 36, 9, brightness);
+        
+    // LAPS
         select_font(&FreeSans9pt7b);
-        if(vehicle.lap_number < 10){ //the lap number is in different place depending on the decimal value
-            if (vehicle.lap_number == TOTAL_LAPS + 1){
-                draw_text(tx_buf, "#", 112, 12, brightness); //there is a +1 lap to see the final energy consumption of the previous lap
-            }else{
-                draw_text(tx_buf, itoa(vehicle.lap_number), 112, 12, brightness);
-            }
-        }else{
-            if (vehicle.lap_number == TOTAL_LAPS + 1){
-                draw_text(tx_buf, "#", 100, 12, brightness);
-            }else{
-                draw_text(tx_buf, itoa(vehicle.lap_number), 100, 12, brightness);
-            }
+        if (vehicle.lap_number < 10) { // padding below two digits
+            draw_char(tx_buf, '0', 65, 14, 1);
+            draw_text(tx_buf, itoa(vehicle.lap_number), 75, 14, brightness);
+        } else {
+            draw_text(tx_buf, itoa(vehicle.lap_number), 65, 14, brightness);
         }
-        
-        draw_char(tx_buf, '/', 125, 12, brightness);
-        draw_text(tx_buf, itoa(TOTAL_LAPS), 130, 12, brightness);
-        
-    // DRIVE MODE
-//        if(VcuState_A.DRIVE==1){
-//          draw_char(tx_buf, 'D', 59, 33, brightness);
-//        }else if(VcuState_A.REVERSE==1){ 
-//          draw_char(tx_buf, 'R', 59, 33, brightness);
-//        }else{
-//          draw_char(tx_buf, 'N', 59, 33, brightness);
-//        }
+        draw_char(tx_buf, '/', 86, 14, brightness);
+        if (TOTAL_LAPS < 10) {
+            draw_char(tx_buf, '0', 92, 14, 1);
+            draw_text(tx_buf, itoa(TOTAL_LAPS), 102, 14, brightness);
+        } else {
+            draw_text(tx_buf, itoa(TOTAL_LAPS), 92, 14, brightness);
+        }
+        select_font(&Font5x7FixedMono);
+        draw_text(tx_buf, "LAP", 113, 9, brightness);
            
         
-    // TIME    
-        select_font(&Font5x7FixedMono);
-        draw_text(tx_buf, "T", 0, 27, brightness);
+    // TIME
         select_font(&FreeSans9pt7b);
-        draw_text(tx_buf, itoa(vehicle.lap_sec), 8, 31, brightness);       
+        if(vehicle.lap_sec<10){ // fixed decimal point with padding
+            draw_text(tx_buf, "00", 140, 14, 1);
+            draw_text(tx_buf, itoa(vehicle.lap_sec), 160, 14, brightness);
+        } else if(vehicle.lap_sec<100){
+            draw_char(tx_buf, '0', 140, 14, 1);
+            draw_text(tx_buf, itoa(vehicle.lap_sec), 150, 14, brightness);
+        }else{
+            draw_text(tx_buf, itoa(vehicle.lap_sec), 140, 14, brightness);
+        }
+        draw_char(tx_buf, '.', 170, 14, brightness);
+        draw_text(tx_buf, itoa((vehicle.lap_sec-(uint16_t)vehicle.lap_sec)*10), 174, 14, brightness);
+        select_font(&Font5x7FixedMono);
+        draw_text(tx_buf, "SEC", 186, 9, brightness);
               
     // DELTA TIME
         select_font(&Font5x7FixedMono);
-        draw_text(tx_buf, "dT", 78, 27, brightness);
-        select_font(&FreeSans9pt7b);
-        if(vehicle.delta_time_sec < 0){
-            draw_text(tx_buf, "-", 91, 29, brightness);
-            draw_text(tx_buf, itoa(vehicle.delta_time_sec*(-1)), 100, 31, brightness);
-        }else if(vehicle.delta_time_sec == 0){
-            draw_text(tx_buf, itoa(vehicle.delta_time_sec), 91, 31, brightness);
-        }else{
-            draw_text(tx_buf, "+", 91, 29, brightness);
-            draw_text(tx_buf, itoa(vehicle.delta_time_sec), 100, 31, brightness);
+        if (vehicle.delta_time_sec > 0) {
+            draw_char(tx_buf, '+', 214, 16, brightness);
+        } else if (vehicle.delta_time_sec < 0) {
+            draw_char(tx_buf, '-', 214, 16, brightness);
         }
-      
+        if(vehicle.delta_time_sec<10){ // fixed decimal point with padding
+            draw_text(tx_buf, "00", 220, 16, 1);
+            draw_text(tx_buf, itoa(vehicle.delta_time_sec), 232, 16, brightness);
+        } else if(vehicle.delta_time_sec<100){
+            draw_char(tx_buf, '0', 220, 16, 1);
+            draw_text(tx_buf, itoa(vehicle.delta_time_sec), 226, 16, brightness);
+        }else{
+            draw_text(tx_buf, itoa(vehicle.delta_time_sec), 220, 16, brightness);
+        }
+        draw_char(tx_buf, '.', 238, 16, brightness);
+        draw_text(tx_buf, itoa((vehicle.delta_time_sec-(uint16_t)vehicle.delta_time_sec)*10), 244, 16, brightness);
+        draw_text(tx_buf, "S", 250, 16, brightness);
         
-    // CAN message count
-//        select_font(&Font5x7FixedMono);
-//        draw_text(tx_buf, "MSGS:", 0, 60, brightness);
-//        draw_text(tx_buf, itoa(can_msg_num), 30, 60, brightness);
         
     // LAST LAP JOULE
         select_font(&Font5x7FixedMono);
-        draw_text(tx_buf, "PREVJ:", 0, 45, brightness);
-        if (vehicle.lap_number == 0) {
-            draw_text(tx_buf, itoa(vehicle.lap_joules[0]), 37, 45, brightness);
+        float lap_joule_display = vehicle.prev_lap_joule;
+        uint8_t lap_joule_offset;
+        if (lap_joule_display == 0) {
+            lap_joule_offset = 1;
         } else {
-            draw_text(tx_buf, itoa(vehicle.lap_joules[vehicle.lap_number-1]), 30, 45, brightness);
+            lap_joule_offset = ((uint8_t)log10f(lap_joule_display))+1;
         }
+        for (uint8_t i = 5; i > lap_joule_offset; i--) {
+            draw_char(tx_buf, '0', 250-i*6, 7, 2);
+        }
+        draw_text(tx_buf, itoa(lap_joule_display), 250-lap_joule_offset*6, 7, brightness);
+        draw_char(tx_buf, 'J', 250, 7, brightness);
         
     // Distance
-        select_font(&Font5x7FixedMono);
-        draw_text(tx_buf, "DIST:", 78, 46, brightness);
-        draw_text(tx_buf, itoa(vehicle.distance), 109, 46, brightness);  
+//        select_font(&Font5x7FixedMono);
+//        draw_text(tx_buf, "DIST:", 78, 46, brightness);
+//        draw_text(tx_buf, itoa(vehicle.distance), 109, 46, brightness);
         
-    // MISCELLANEOUS
-        select_font(&Org_01);
-        
-        //display brightness
-        if(flags.adaptive_brightness_mode){
-            draw_pixel(tx_buf, 2, 49, brightness);//brightness symbol
-            draw_pixel(tx_buf, 3, 49, brightness);
-            draw_pixel(tx_buf, 4, 49, brightness);
-            draw_pixel(tx_buf, 2, 50, brightness);
-            draw_pixel(tx_buf, 3, 50, brightness);
-            draw_pixel(tx_buf, 4, 50, brightness);
-            draw_pixel(tx_buf, 2, 51, brightness);
-            draw_pixel(tx_buf, 3, 51, brightness);
-            draw_pixel(tx_buf, 4, 51, brightness);
-            draw_pixel(tx_buf, 0, 50, brightness);
-            draw_pixel(tx_buf, 1, 50, brightness);
-            draw_pixel(tx_buf, 3, 47, brightness);
-            draw_pixel(tx_buf, 3, 48, brightness);
-            draw_pixel(tx_buf, 5, 50, brightness);
-            draw_pixel(tx_buf, 6, 50, brightness);
-            draw_pixel(tx_buf, 3, 52, brightness);
-            draw_pixel(tx_buf, 3, 53, brightness);
-            draw_pixel(tx_buf, 0, 47, brightness);
-            draw_pixel(tx_buf, 1, 48, brightness);
-            draw_pixel(tx_buf, 0, 53, brightness);
-            draw_pixel(tx_buf, 1, 52, brightness);
-            draw_pixel(tx_buf, 5, 48, brightness);
-            draw_pixel(tx_buf, 6, 47, brightness);
-            draw_pixel(tx_buf, 5, 52, brightness);
-            draw_pixel(tx_buf, 6, 53, brightness);
-            
-            draw_text(tx_buf, itoa(adaptive_brightness), 10, 52, brightness);
-        }
-        
-        //voltage
-//        draw_text(tx_buf, itoa(vehicle.voltage), 0, 60, brightness);
-//        draw_text(tx_buf, ".", 12, 60, brightness);
-//        draw_text(tx_buf, itoa((vehicle.voltage-(uint8_t)vehicle.voltage)*10), 14, 60, brightness);
-//        draw_text(tx_buf, "V", 21, 60, brightness);
-//        
-//        //current
-//        draw_text(tx_buf, itoa(vehicle.current*-1), 35, 60, brightness);
-//        draw_text(tx_buf, ".", 47, 60, brightness);
-//        draw_text(tx_buf, itoa((vehicle.current-(uint8_t)vehicle.current)*10), 49, 60, brightness);
-//        draw_text(tx_buf, "A", 56, 60, brightness);
-        
-        //old distance in meters
-//        draw_text(tx_buf, "DIST:", 60, 60, brightness);
-//        draw_text(tx_buf, itoa(vehicle.distance), 88, 60, brightness);
-        
-        //display update time in milliseconds
-//        draw_text(tx_buf, "updT:", 87, 60, brightness);
-//        draw_text(tx_buf, itoa(display_update_cnt), 112, 60, brightness);
-        
-        //display refresh frequency
-//        draw_text(tx_buf, itoa(display_hz), 130, 60, brightness);
-//        draw_text(tx_buf, "Hz", 143, 60, brightness);
+        draw_hline(tx_buf, 18, 0, DISPLAY_WIDTH-1, 2);
         
         
+    // SPEED GRAPH
         
+    // scale ladder
+        draw_vline(tx_buf, 15, 22, 62, brightness);
+        draw_pixel(tx_buf, 14, 22, brightness);
+        draw_pixel(tx_buf, 13, 22, brightness);
+        draw_pixel(tx_buf, 14, 32, brightness);
+        draw_pixel(tx_buf, 14, 42, brightness);
+        draw_pixel(tx_buf, 14, 52, brightness);
+        draw_pixel(tx_buf, 14, 62, brightness);
+        draw_pixel(tx_buf, 13, 62, brightness);
         
-//        for(int i=0;i<16;i++){
-//            draw_pixel(tx_buf, i+135, 54, i);
-//            draw_pixel(tx_buf, i+135, 55, i);
-//            draw_pixel(tx_buf, i+135, 56, i);
-//            draw_pixel(tx_buf, i+135, 57, i);
-//            draw_pixel(tx_buf, i+135, 58, i);
-//            draw_pixel(tx_buf, i+135, 59, i);
-//            draw_pixel(tx_buf, i+135, 60, i);
-//            draw_pixel(tx_buf, i+135, 61, i);
-//            draw_pixel(tx_buf, i+135, 62, i);
-//        }
+    // speed min/max
+        draw_text(tx_buf, itoa(LUT_MAX_SPEED), 0, 28, brightness);
+        draw_text(tx_buf, itoa(LUT_MIN_SPEED), 0, 63, brightness);
         
-          
+    // speed arrow
+        uint8_t arrow_offset = map_value(vehicle.speed, LUT_MIN_SPEED, LUT_MAX_SPEED, 0, 40);
+        draw_vline(tx_buf, 17, 59-arrow_offset, 65-arrow_offset, brightness);
+        draw_vline(tx_buf, 18, 60-arrow_offset, 64-arrow_offset, brightness);
+        draw_vline(tx_buf, 19, 61-arrow_offset, 63-arrow_offset, brightness);
+        draw_pixel(tx_buf, 20, 62-arrow_offset, brightness);
         
-        draw_vline(tx_buf, 155, 0, 63, brightness);
-        
-    // SPEED GRAPH   
-        offset = vehicle.distance/LUT_DISTANCE_RESOLUTION; //because the speed resolution is more than 1 meter the distance must be divided by this number
-        
-        SpeedArrow(vehicle.speed*LUT_DISTANCE_RESOLUTION, brightness);
-        for(int i=offset;i<offset+86;i++){ //the offset value scrolls the speed graph, thus the scrolling speed is dependent on the vehicle speed
-            if(i+170-offset>=170){
-                draw_pixel(tx_buf, i+170-offset, (lut[i]*(-1)+SPD_GRAPH_OFFSET), brightness);
+        for(uint16_t i = 21; i < DISPLAY_WIDTH; i++){
+            uint16_t lut_index = (vehicle.distance/LUT_DISTANCE_STEP)+i-21;
+            if (lut_index > 0 && lut_index < LUT_SIZE) {
+                float lut_val = 62-map_value(lut_dist_kmh[lut_index], LUT_MIN_SPEED, LUT_MAX_SPEED, 0, 40);
+                if (lut_acc[lut_index] > 0) {
+                    draw_vline(tx_buf, i, lut_val, 64, 1);
+                }
+                draw_pixel(tx_buf, i, lut_val, brightness);
             }
         }
         
-    // ACC CHEVRON 
-//        if(vehicle.lap_number>0){
-//        if(lut[(int)offset] > vehicle.speed*2) AccChevron(56, 17);
-//        }
+        send_buffer_to_OLED(tx_buf, 0, 0);
         
-        send_buffer_to_OLED(tx_buf, 0, 0);    
-        
-        
-        display_hz_cnt++;     
+        display_hz_cnt++;
 }
 
 
@@ -482,6 +326,13 @@ char* itoa(uint32_t value)
  
      return &buffer[c];
  }
+
+int32_t map_value(int32_t x, int32_t min_x, int32_t max_x, int32_t min_to, int32_t max_to) {
+    int32_t new_x = x;
+    if (new_x < min_x) new_x = min_x;
+    else if (new_x > max_x) new_x = max_x;
+    return (new_x - min_x) * (max_to - min_to) / (max_x - min_x) + min_to;
+}
 
 void GetBrightnessADC(void){
     ADC1_Enable();
