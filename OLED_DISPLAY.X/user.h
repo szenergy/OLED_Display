@@ -6,11 +6,9 @@
 #include "mcc_generated_files/pin_manager.h"
 #include "mcc_generated_files/system.h"
 #include "mcc_generated_files/interrupt_manager.h"
-#include "mcc_generated_files/tmr2.h"
 #include "SSD1322_GFX.h"
-#include "mcc_generated_files/spi1.h"
+#include "SSD1322_API.h"
 #include "mcc_generated_files/can1.h"
-#include "mcc_generated_files/adc1.h"
 
 
 
@@ -20,6 +18,7 @@ struct VEHICLE{
     float speed;
     float distance;
     float prev_distance;
+    float total_joule;
     float lap_joule;
     float prev_lap_joule;
     float voltage;
@@ -73,56 +72,17 @@ typedef union  __attribute__((packed))
 } STW_STATE_BUTTONS;
 
 struct FLAGS{
-    bool update_synced;
     bool update_display;
-    bool debounce;
-    bool adaptive_brightness_mode;
     bool can_message_received;
 };
 
 extern volatile struct FLAGS flags;
 
 extern volatile struct VEHICLE vehicle;
-extern volatile CAN_Bytes rpm;
-extern volatile CAN_Bytes bms;
 extern volatile VCU_STATE_A VCU_A;
-//extern volatile VCU_STATE_B VcuState_B;
 extern volatile STW_STATE_BUTTONS Steering_Wheel;
 
-//ADC
-extern ADC1_CHANNEL left_phototrans;
-extern ADC1_CHANNEL right_phototrans;
-extern uint16_t left_brightness;
-extern uint16_t right_brightness;
-extern uint16_t adaptive_brightness;
-extern uint16_t prev_adaptive_brightness;
-
-extern volatile uint8_t SPI_data[8];
-
-
 extern uint8_t tx_buf[256 * 64 / 2];
-//extern double offset;
-extern int display_update_cnt;
-
-
-extern uint8_t lut[641];
-extern uint16_t lut_size;
-
-extern uint32_t tmr1_cnt;
-extern bool tmr1_flag;
-
-extern uint32_t tmr1_1s_cnt;
-extern bool tmr1_1s_flag;
-extern uint32_t display_hz_cnt;
-extern uint32_t display_hz;
-
-extern uint16_t update_cnt_100ms;
-extern uint16_t debounce_500ms;
-
-extern uint32_t cnt;
-extern bool cnt_flag;
-
-extern uint16_t can_msg_num;
 
 extern bool display_off;
 
@@ -132,13 +92,9 @@ int32_t map_value(int32_t x, int32_t min_x, int32_t max_x, int32_t min_to, int32
 
 void UpdateDisplay(uint8_t brightness);
 void CAN_Receive(void);
-void CAN_Transmit(void);
 void CalculateDisplayValues(void);
-void GetBrightnessADC(void);
-void SpeedArrow(double double_speed, uint8_t brightness);
-void AccChevron(uint16_t x_pos, uint16_t y_pos);
 void User_Idle_Normal(void);
-void _Handle_Display_Off();
+void Handle_Display_Off();
 
 
 #endif

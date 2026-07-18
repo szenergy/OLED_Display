@@ -16,151 +16,80 @@
 #include "mcc_generated_files/tmr1.h"
 
 
-volatile struct FLAGS flags = {};
+volatile struct FLAGS flags;
 
 //CORE VALUE VARIABLES
-volatile struct VEHICLE vehicle = {};
-volatile CAN_Bytes encoder = {};
-//volatile CAN_Bytes battery_current = {};
-//volatile CAN_Bytes battery_voltage = {};
-volatile VCU_STATE_A VCU_A = {};
-//volatile VCU_STATE_B VcuState_B = {};
-volatile STW_STATE_BUTTONS Steering_Wheel = {};
+volatile struct VEHICLE vehicle;
+volatile VCU_STATE_A VCU_A;
+volatile STW_STATE_BUTTONS Steering_Wheel;
 
-double rpm_m_average = 0;
-double rpm_avg[3];
-double rpm_avg_sum = 0;
-
-volatile uint8_t SPI_data[8]={0xa1,0xa2,0xa3,0xa4,0xa5,0xa6,0xa7,0xa8};
 
 //DISPLAY VARIABLES
 uint8_t tx_buf[256 * 64 / 2];
-//uint8_t tx_buf[64 * 64 / 2];
-//uint16_t offset = 0;
-int display_update_cnt = 0;
-
-uint8_t c_top_brightness = 7;
-uint8_t c_mid_brightness = 11;
-uint8_t c_bottom_brightness = 15;
-
-uint16_t can_msg_num = 0;
-
-//ADC
-ADC1_CHANNEL left_phototrans = channel_AN15;
-ADC1_CHANNEL right_phototrans = channel_AN26;
-uint16_t left_brightness = 0;
-uint16_t right_brightness = 0;
-uint16_t adaptive_brightness = 0;
-uint16_t prev_adaptive_brightness = 0;
 
 bool display_off = false;
 bool stw_fn1_prev = false;
-
-//TIMER VARIABLES
-uint32_t tmr1_cnt = 0;
-bool tmr1_flag = false;
-
-uint32_t tmr1_1s_cnt = 0;
-bool tmr1_1s_flag = false;
-
-uint32_t display_hz_cnt = 0;
-uint32_t display_hz = 0;
-
-uint16_t update_cnt_100ms = 0;
-
-uint16_t debounce_500ms = 0;
-
-uint32_t cnt = 0;
-bool cnt_flag = false;
-
-//CAN VARIABLES
-//CAN_MSG_OBJ RECmsg;
-//uint8_t data_rec_message[8];
-
-//CAN_MSG_OBJ TRANSmsg;
-//uint8_t data_trans_message[8] = {0x41,0x42,0x43,0x44,0x45,0x46,0x47,0x48};
-
-float vesc_voltage = 0;
-float vesc_current = 0;
 
 CAN_MSG_OBJ RECmsg;
 uint8_t data_rec_message[8];
 
 bool _CAN_Read_Helper()  {
-    for(size_t i = 0; i < 8; i++) data_rec_message[i] = 0;
+    for (uint8_t i = 0; i < 8; i++) {
+        data_rec_message[i] = 0;
+    }
     RECmsg.data = data_rec_message;
     return CAN1_Receive(&RECmsg);
 }
 
-void _Handle_Display_Off() {
+void Handle_Display_Off() {
     if (display_off) {
+//        TMR1_Stop();
         C1FEN1 = 0x08;
-        fill_buffer(tx_buf, 0);
-        send_buffer_to_OLED(tx_buf, 0, 0);
-        TMR1_Stop();
+        SSD1322_API_sleep_on();
     } else {
-        C1FEN1 = 0x7F;
-        TMR1_Start();
+        C1FEN1 = 0x1F;
+        SSD1322_API_sleep_off();
+//        TMR1_Start();
     }
 }
 
 void CAN_Receive(void){
     while(_CAN_Read_Helper()){        
-        if(RECmsg.msgId==0x129){ //saves sw table
+        if(RECmsg.msgId==0x129){            // VCU / Switch Table
             VCU_A.bits = RECmsg.data[0];
         }
-        else if(RECmsg.msgId==0x123){ //saves RPM value
-            update_cnt_100ms = 0;
-            flags.update_synced = true;
-            encoder.HighByte = RECmsg.data[0];
-            encoder.LowByte = RECmsg.data[1];
+        else if(RECmsg.msgId==0x123){       // Encoder
+            vehicle.rpm = ((uint16_t)(RECmsg.data[0] << 8) | (uint16_t)RECmsg.data[1]) / 100.0F;
         }
-        else if (RECmsg.msgId==0x150) {
-            vehicle.lap_number = RECmsg.data[0];
+        else if (RECmsg.msgId==0x150) {     // VCU Calculated State
+            uint8_t new_lap_num = RECmsg.data[0];
+            
+            if (new_lap_num != vehicle.lap_number) {
+                vehicle.prev_lap_joule = vehicle.lap_joule;
+                vehicle.lap_joule = vehicle.total_joule;
+            }
+            
+            vehicle.lap_number = new_lap_num;
             vehicle.lap_sec =  ((RECmsg.data[1] << 8) | RECmsg.data[2]) / 100.0F;
             vehicle.distance = ((RECmsg.data[3] << 8) | RECmsg.data[4]) / 20.0F;
             vehicle.delta_time_sec = ((RECmsg.data[6] << 8) | RECmsg.data[7]) / 100.0F;
         }
-        else if (RECmsg.msgId==0x190) {
+        else if (RECmsg.msgId==0x190) {     // Steering Wheel
             Steering_Wheel.bits = RECmsg.data[0];            
             if (Steering_Wheel.FN1 == true && stw_fn1_prev == false) {
                 display_off = !display_off;
-                _Handle_Display_Off();
+                Handle_Display_Off();
             }
             stw_fn1_prev = Steering_Wheel.FN1;
         }
-        else if (RECmsg.msgId==0x1B51) {
-            vesc_voltage = ((RECmsg.data[5]<<8) | RECmsg.data[4]) / 10.0F;
+        else if (RECmsg.msgId==0x350) {     // Joulemeter
+            uint32_t new_joule = (RECmsg.data[0] << 24) | (RECmsg.data[1] << 16) | (RECmsg.data[2] << 8) | (RECmsg.data[3]);
+            vehicle.total_joule = new_joule;
         }
-        else if (RECmsg.msgId==0x1051) {
-            vesc_current = ((RECmsg.data[5]<<8) | RECmsg.data[4]) / 10.0F;
-        }
-        else if (RECmsg.msgId==0x4028001) {
-            vehicle.voltage = ((RECmsg.data[0]<<8) | RECmsg.data[1]) / 10.0F;
-            vehicle.current = (((int16_t)(RECmsg.data[2]<<8) | RECmsg.data[3])) / 10.0F - 30000;
-        }
-//        else if(RECmsg.msgId==0x700){ //saves battery current and voltage values
-//            battery_current.HighByte = RECmsg.data[0];
-//            battery_current.LowByte = RECmsg.data[1];
-//            battery_voltage.HighByte = RECmsg.data[2];
-//            battery_voltage.LowByte = RECmsg.data[3];
-//        }
     }
 }
 
 void CalculateDisplayValues(void){
-    //RPM moving average
-    rpm_avg[0] = ((double)encoder.Word)/100;
-    rpm_avg[1] = rpm_avg[0];
-    rpm_avg[2] = rpm_avg[1];
-    rpm_avg_sum = rpm_avg[0] + rpm_avg[1] + rpm_avg[2];
-    if(rpm_avg_sum == 0){
-        vehicle.rpm = 0;
-    }else{
-        vehicle.rpm = rpm_avg_sum/3;
-    }
-    
-    //Speed
     vehicle.speed = vehicle.rpm * SPEED_MULT_FACTOR;
 } 
 
@@ -169,7 +98,7 @@ void UpdateDisplay(uint8_t brightness){
     
     //clear display buffer
         fill_buffer(tx_buf, 0);
-    
+        
     // SPEED
         select_font(&FreeSans9pt7b);
         if(vehicle.speed<10){ // fixed decimal point with padding
@@ -225,23 +154,25 @@ void UpdateDisplay(uint8_t brightness){
         } else if (vehicle.delta_time_sec < 0) {
             draw_char(tx_buf, '-', 214, 16, brightness);
         }
-        if(vehicle.delta_time_sec<10){ // fixed decimal point with padding
+        float abs_delta = vehicle.delta_time_sec;
+        if(abs_delta < 0) abs_delta *= -1;
+        if(abs_delta<10){ // fixed decimal point with padding
             draw_text(tx_buf, "00", 220, 16, 1);
-            draw_text(tx_buf, itoa(vehicle.delta_time_sec), 232, 16, brightness);
-        } else if(vehicle.delta_time_sec<100){
+            draw_text(tx_buf, itoa(abs_delta), 232, 16, brightness);
+        } else if(abs_delta<100){
             draw_char(tx_buf, '0', 220, 16, 1);
-            draw_text(tx_buf, itoa(vehicle.delta_time_sec), 226, 16, brightness);
+            draw_text(tx_buf, itoa(abs_delta), 226, 16, brightness);
         }else{
-            draw_text(tx_buf, itoa(vehicle.delta_time_sec), 220, 16, brightness);
+            draw_text(tx_buf, itoa(abs_delta), 220, 16, brightness);
         }
         draw_char(tx_buf, '.', 238, 16, brightness);
-        draw_text(tx_buf, itoa((vehicle.delta_time_sec-(uint16_t)vehicle.delta_time_sec)*10), 244, 16, brightness);
+        draw_text(tx_buf, itoa((abs_delta-(uint16_t)abs_delta)*10), 244, 16, brightness);
         draw_text(tx_buf, "S", 250, 16, brightness);
         
         
     // LAST LAP JOULE
         select_font(&Font5x7FixedMono);
-        float lap_joule_display = vehicle.prev_lap_joule;
+        float lap_joule_display = vehicle.lap_joule - vehicle.prev_lap_joule;
         uint8_t lap_joule_offset;
         if (lap_joule_display == 0) {
             lap_joule_offset = 1;
@@ -254,10 +185,6 @@ void UpdateDisplay(uint8_t brightness){
         draw_text(tx_buf, itoa(lap_joule_display), 250-lap_joule_offset*6, 7, brightness);
         draw_char(tx_buf, 'J', 250, 7, brightness);
         
-    // Distance
-//        select_font(&Font5x7FixedMono);
-//        draw_text(tx_buf, "DIST:", 78, 46, brightness);
-//        draw_text(tx_buf, itoa(vehicle.distance), 109, 46, brightness);
         
         draw_hline(tx_buf, 18, 0, DISPLAY_WIDTH-1, 2);
         
@@ -297,8 +224,6 @@ void UpdateDisplay(uint8_t brightness){
         }
         
         send_buffer_to_OLED(tx_buf, 0, 0);
-        
-        display_hz_cnt++;
 }
 
 
@@ -334,123 +259,18 @@ int32_t map_value(int32_t x, int32_t min_x, int32_t max_x, int32_t min_to, int32
     return (new_x - min_x) * (max_to - min_to) / (max_x - min_x) + min_to;
 }
 
-void GetBrightnessADC(void){
-    ADC1_Enable();
-    ADC1_ChannelSelect(left_phototrans);
-    ADC1_SoftwareTriggerEnable();
-    for(int i=0;i <1000;i++);//Delay
-    ADC1_SoftwareTriggerDisable();
-    while(!ADC1_IsConversionComplete(left_phototrans));
-    left_brightness = ADC1_ConversionResultGet(left_phototrans);
-    
-    ADC1_ChannelSelect(right_phototrans);
-    ADC1_SoftwareTriggerEnable();
-    for(int i=0;i <100;i++);//Delay
-    ADC1_SoftwareTriggerDisable();
-    while(!ADC1_IsConversionComplete(right_phototrans));
-    right_brightness = ADC1_ConversionResultGet(right_phototrans);
-    ADC1_Disable(); 
-    
-    adaptive_brightness = (left_brightness+right_brightness)/4;
-    if(adaptive_brightness>15){
-        adaptive_brightness = 15;
-    }else if(adaptive_brightness<3){
-        adaptive_brightness = 3;
-    }
-    
-    if(adaptive_brightness<(prev_adaptive_brightness+3) && adaptive_brightness>(prev_adaptive_brightness-3)){ //to avoid flickering
-        adaptive_brightness = prev_adaptive_brightness;
-    }
-}
-
-void SpeedArrow(double double_speed, uint8_t brightness){
-    draw_pixel(tx_buf, 159, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET-6, brightness);
-    draw_pixel(tx_buf, 160, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET-5, brightness);
-    draw_pixel(tx_buf, 159, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET-5, brightness);
-    draw_pixel(tx_buf, 161, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET-4, brightness);
-    draw_pixel(tx_buf, 160, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET-4, brightness);
-    draw_pixel(tx_buf, 159, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET-4, brightness);
-    draw_pixel(tx_buf, 162, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET-3, brightness);
-    draw_pixel(tx_buf, 161, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET-3, brightness);
-    draw_pixel(tx_buf, 160, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET-3, brightness);
-    draw_pixel(tx_buf, 159, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET-3, brightness);
-    draw_pixel(tx_buf, 163, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET-2, brightness);
-    draw_pixel(tx_buf, 162, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET-2, brightness);
-    draw_pixel(tx_buf, 161, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET-2, brightness);
-    draw_pixel(tx_buf, 160, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET-2, brightness);
-    draw_pixel(tx_buf, 159, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET-2, brightness);
-    draw_pixel(tx_buf, 164, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET-1, brightness);
-    draw_pixel(tx_buf, 163, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET-1, brightness);
-    draw_pixel(tx_buf, 162, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET-1, brightness);
-    draw_pixel(tx_buf, 161, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET-1, brightness);
-    draw_pixel(tx_buf, 160, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET-1, brightness);
-    draw_pixel(tx_buf, 159, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET-1, brightness);
-    draw_pixel(tx_buf, 166, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET, brightness);
-    draw_pixel(tx_buf, 165, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET, brightness);
-    draw_pixel(tx_buf, 164, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET, brightness);
-    draw_pixel(tx_buf, 163, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET, brightness);
-    draw_pixel(tx_buf, 162, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET, brightness);
-    draw_pixel(tx_buf, 161, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET, brightness);
-    draw_pixel(tx_buf, 160, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET, brightness);
-    draw_pixel(tx_buf, 159, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET, brightness);
-    draw_pixel(tx_buf, 164, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET+1, brightness);
-    draw_pixel(tx_buf, 163, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET+1, brightness);
-    draw_pixel(tx_buf, 162, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET+1, brightness);
-    draw_pixel(tx_buf, 161, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET+1, brightness);
-    draw_pixel(tx_buf, 160, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET+1, brightness);
-    draw_pixel(tx_buf, 159, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET+1, brightness);
-    draw_pixel(tx_buf, 163, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET+2, brightness);
-    draw_pixel(tx_buf, 162, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET+2, brightness);
-    draw_pixel(tx_buf, 161, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET+2, brightness);
-    draw_pixel(tx_buf, 160, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET+2, brightness);
-    draw_pixel(tx_buf, 159, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET+2, brightness);
-    draw_pixel(tx_buf, 162, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET+3, brightness);
-    draw_pixel(tx_buf, 161, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET+3, brightness);
-    draw_pixel(tx_buf, 160, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET+3, brightness);
-    draw_pixel(tx_buf, 159, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET+3, brightness);
-    draw_pixel(tx_buf, 161, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET+4, brightness);
-    draw_pixel(tx_buf, 160, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET+4, brightness);
-    draw_pixel(tx_buf, 159, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET+4, brightness);
-    draw_pixel(tx_buf, 160, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET+5, brightness);
-    draw_pixel(tx_buf, 159, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET+5, brightness);
-    draw_pixel(tx_buf, 159, ((int)double_speed)*(-1)+SPD_GRAPH_OFFSET+6, brightness);
-    
-}
-
-void AccChevron(uint16_t x_pos, uint16_t y_pos){
-    if(c_top_brightness<2) c_top_brightness = 15;
-    if(c_mid_brightness<2) c_mid_brightness = 15;
-    if(c_bottom_brightness<2) c_bottom_brightness = 15;
-    
-    draw_line(tx_buf, x_pos, y_pos, x_pos+8, y_pos-8, c_top_brightness);
-    draw_line(tx_buf, x_pos, y_pos-1, x_pos+8, y_pos-9, c_top_brightness);
-    draw_line(tx_buf, x_pos+16, y_pos, x_pos+8, y_pos-8, c_top_brightness);
-    draw_line(tx_buf, x_pos+16, y_pos-1, x_pos+8, y_pos-9, c_top_brightness);
-    
-    draw_line(tx_buf, x_pos, y_pos-4, x_pos+8, y_pos-12, c_mid_brightness);
-    draw_line(tx_buf, x_pos, y_pos-5, x_pos+8, y_pos-13, c_mid_brightness);
-    draw_line(tx_buf, x_pos+16, y_pos-4, x_pos+8, y_pos-12, c_mid_brightness);
-    draw_line(tx_buf, x_pos+16, y_pos-5, x_pos+8, y_pos-13, c_mid_brightness);
-    
-    draw_line(tx_buf, x_pos, y_pos-8, x_pos+8, y_pos-16, c_bottom_brightness);
-    draw_line(tx_buf, x_pos, y_pos-9, x_pos+8, y_pos-17, c_bottom_brightness);
-    draw_line(tx_buf, x_pos+16, y_pos-8, x_pos+8, y_pos-16, c_bottom_brightness);
-    draw_line(tx_buf, x_pos+16, y_pos-9, x_pos+8, y_pos-17, c_bottom_brightness);
-    
-    c_top_brightness -= 2;
-    c_mid_brightness -= 2;
-    c_bottom_brightness -= 2;
-}
-
 void User_Idle_Normal(void){
+    // make sure the CAN doesn't go to sleep
+//    C1CTRL1bits.CSIDL = 0;
+    
     // Reset WatchDogTimer and Idle wakeup bits
     RCONbits.IDLE = 0;
     RCONbits.WDTO = 0;
     // Disable DMA interrupts in idle
-    IPC1bits.DMA0IP = 0;
-    IPC6bits.DMA2IP = 0;
+//    IPC1bits.DMA0IP = 0;
+//    IPC6bits.DMA2IP = 0;
     // ADC disabled in idle
-    AD1CON1bits.ADSIDL = 1;
+//    AD1CON1bits.ADSIDL = 1;
     
     // Idle mode disables the CPU but keep peripherals running
     Idle();
@@ -462,13 +282,7 @@ void User_Idle_Normal(void){
             RCONbits.WDTO = 0;
         }
         ClrWdt();
-        IPC1bits.DMA0IP = 1;
-        IPC6bits.DMA2IP = 1;
+//        IPC1bits.DMA0IP = 1;
+//        IPC6bits.DMA2IP = 1;
     }
 }
-
-
-
-
-
-

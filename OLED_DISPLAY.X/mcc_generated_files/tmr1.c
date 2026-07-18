@@ -93,10 +93,10 @@ void TMR1_Initialize (void)
 {
     //TMR1 0; 
     TMR1 = 0x00;
-    //Period = 0.001 s; Frequency = 40000000 Hz; PR1 39999; 
-    PR1 = 0x9C3F;
-    //TCKPS 1:1; TON enabled; TSIDL disabled; TCS FOSC/2; TSYNC disabled; TGATE disabled; 
-    T1CON = 0x8000;
+    //Period = 0.05 s; Frequency = 40000000 Hz; PR1 31249; 
+    PR1 = 0x7A11;
+    //TCKPS 1:64; TON disabled; TSIDL disabled; TCS FOSC/2; TSYNC disabled; TGATE disabled; 
+    T1CON = 0x20;
 
     if(TMR1_InterruptHandler == NULL)
     {
@@ -160,48 +160,7 @@ uint16_t TMR1_Counter16BitGet( void )
 
 void __attribute__ ((weak)) TMR1_CallBack(void)
 {
-    tmr1_cnt++;
-    tmr1_1s_cnt++;
-    update_cnt_100ms++;
-//    vehicle.lap_ms++;
-    
-    
-    if(tmr1_1s_cnt>=1000){
-        tmr1_1s_cnt = 0;
-        tmr1_1s_flag = true;
-        display_hz = display_hz_cnt;
-        display_hz_cnt = 0;
-    }
-    
-//    if(update_cnt_100ms == 50){
-//        flags.update_display = true;
-//        update_cnt_100ms = 0;
-//    }
-    
-    if(update_cnt_100ms == 50){//the display update is synchronized 2 ms after the Encoder CAN message
-        if(!flags.update_synced){
-            flags.update_display = true;
-        }
-        
-        flags.update_synced = false;
-        update_cnt_100ms = 0;
-    }else if(update_cnt_100ms == 2 && flags.update_synced){
-        flags.update_display = true;
-    }
-    
-    if(flags.debounce){
-        debounce_500ms++;
-        if (debounce_500ms >= 500){
-            debounce_500ms = 0;
-            flags.debounce = false;
-        }
-    }
-    
-    
-//    if(vehicle.lap_ms==1000){
-//        vehicle.lap_sec++;
-//        vehicle.lap_ms=0;
-//    }
+    flags.update_display = true;
 }
 
 void  TMR1_SetInterruptHandler(void (* InterruptHandler)(void))
