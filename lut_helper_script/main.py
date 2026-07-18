@@ -242,6 +242,21 @@ def main():
         else:
             step_macro_val = f"{step}f"
 
+        # Setup speed limit definitions
+        lut_min_speed = clamp_min if clamp_min is not None else float(np.min(y_grid_speed))
+        lut_max_speed = clamp_max if clamp_max is not None else float(np.max(y_grid_speed))
+
+        def format_float_macro(val):
+            if val.is_integer():
+                return f"(float){int(val)}"
+            else:
+                # Strip trailing zeros for cleaner float representation
+                formatted = f"{val:.4f}".rstrip('0').rstrip('.')
+                return f"(float){formatted}"
+
+        min_speed_macro = format_float_macro(lut_min_speed)
+        max_speed_macro = format_float_macro(lut_max_speed)
+
         # Generate header descriptions
         clamp_min_str = f"{clamp_min}" if clamp_min is not None else "None"
         clamp_max_str = f"{clamp_max}" if clamp_max is not None else "None"
@@ -257,6 +272,8 @@ def main():
         print(f"// Array length: {size}")
         print(f"#define LUT_DISTANCE_STEP  {step_macro_val}")
         print(f"#define LUT_SIZE           (uint16_t){size}")
+        print(f"#define LUT_MIN_SPEED      {min_speed_macro}")
+        print(f"#define LUT_MAX_SPEED      {max_speed_macro}")
         print(f"const float lut_dist_kmh[LUT_SIZE] = {{")
         print(formatted_speed)
         print("};")
