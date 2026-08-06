@@ -48,7 +48,7 @@ int main(void)
         
         if(flags.update_display){
             flags.update_display = false;
-            CalculateDisplayValues();
+//            CalculateDisplayValues();
             UpdateDisplay(DISPLAY_BRIGHTNESS);
 //            LED_RY_Toggle();
         }

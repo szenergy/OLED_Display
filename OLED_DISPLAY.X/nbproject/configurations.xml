@@ -399,7 +399,7 @@
                   value="${memories.instruction.ram.ranges}"/>
         <property key="memories.programmemory" value="true"/>
         <property key="memories.programmemory.ranges" value="0-2ab7f"/>
-        <property key="poweroptions.powerenable" value="false"/>
+        <property key="poweroptions.powerenable" value="true"/>
         <property key="programmerToGoFilePath"
                   value="C:/Orszag_Andras/MPLAB_Projects/5V_OLED_DISPLAY.X/debug/default/measuring_board_program_ptg"/>
         <property key="programmerToGoImageName" value="measuring_board_program_ptg"/>
@@ -498,9 +498,7 @@
                   value="${memories.instruction.ram.ranges}"/>
         <property key="memories.programmemory" value="true"/>
         <property key="memories.programmemory.ranges" value="0-2ab7f"/>
-        <property key="poweroptions.powerenable" value="false"/>
-        <property key="programmerToGoFilePath"
-                  value="/home/varma01/Documents/szenergy/OLED_Display/OLED_DISPLAY.X/debug/default/measuring_board_program_ptg"/>
+        <property key="poweroptions.powerenable" value="true"/>
         <property key="programmerToGoImageName" value="measuring_board_program_ptg"/>
         <property key="programoptions.donoteraseauxmem" value="false"/>
         <property key="programoptions.eraseb4program" value="true"/>

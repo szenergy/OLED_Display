@@ -60,6 +60,7 @@ void CAN_Receive(void){
         }
         else if(RECmsg.msgId==0x123){       // Encoder
             vehicle.rpm = ((uint16_t)(RECmsg.data[0] << 8) | (uint16_t)RECmsg.data[1]) / 100.0F;
+            vehicle.speed = ((uint16_t)(RECmsg.data[3] << 8) | (uint16_t)RECmsg.data[4]) / 100.0F;
         }
         else if (RECmsg.msgId==0x150) {     // VCU Calculated State
             uint8_t new_lap_num = RECmsg.data[0];
@@ -89,13 +90,32 @@ void CAN_Receive(void){
     }
 }
 
-void CalculateDisplayValues(void){
-    vehicle.speed = vehicle.rpm * SPEED_MULT_FACTOR;
-} 
+void _DrawBigNum(uint8_t brightness, uint16_t x, uint16_t y, USR_DISPLAY_ALIGNMENT align, uint8_t digits, uint8_t decimals, uint16_t value) {
+    select_font(&FreeSans9pt7b);
+    
+    
+    if(vehicle.speed<10){
+        draw_char(tx_buf, '0', 0, 14, 1);
+        draw_text(tx_buf, itoa(vehicle.speed), 10, 14, brightness);
+    }else{
+        draw_text(tx_buf, itoa(vehicle.speed), 0, 14, brightness);
+    }
+    
+    uint8_t number_of_digits = 1;
+    if (value != 0) {
+        number_of_digits = ((uint8_t)log10f(value))+1;
+    }
+    for (uint8_t i = 5; i > number_of_digits; i--) {
+        draw_char(tx_buf, '0', x+i*6, y, DIM_BRIGHTNESS);
+    }
+    
+    
+    draw_char(tx_buf, '.', 20, 14, brightness);
+    draw_text(tx_buf, itoa((vehicle.speed-(uint8_t)vehicle.speed)*10), 24, 14, brightness);
+}
 
 // brightness 0-15
 void UpdateDisplay(uint8_t brightness){
-    
     //clear display buffer
         fill_buffer(tx_buf, 0);
         
@@ -192,20 +212,19 @@ void UpdateDisplay(uint8_t brightness){
     // SPEED GRAPH
         
     // scale ladder
-        draw_vline(tx_buf, 15, 22, 62, brightness);
-        draw_pixel(tx_buf, 14, 22, brightness);
-        draw_pixel(tx_buf, 13, 22, brightness);
-        draw_pixel(tx_buf, 14, 32, brightness);
-        draw_pixel(tx_buf, 14, 42, brightness);
-        draw_pixel(tx_buf, 14, 52, brightness);
-        draw_pixel(tx_buf, 14, 62, brightness);
-        draw_pixel(tx_buf, 13, 62, brightness);
-        
+        draw_vline(tx_buf, 15, 22, 62, brightness); // line
+        draw_pixel(tx_buf, 14, 22, brightness);     // top tick pixel 1
+        draw_pixel(tx_buf, 13, 22, brightness);     // top tick pixel 2
+        draw_pixel(tx_buf, 14, 32, brightness);     // upper tick
+        draw_pixel(tx_buf, 14, 42, brightness);     // middle tick
+        draw_pixel(tx_buf, 14, 52, brightness);     // lower tick
+        draw_pixel(tx_buf, 14, 62, brightness);     // bottom tick pixel 1
+        draw_pixel(tx_buf, 13, 62, brightness);     // bottom tick pixel 2
     // speed min/max
         draw_text(tx_buf, itoa(LUT_MAX_SPEED), 0, 28, brightness);
         draw_text(tx_buf, itoa(LUT_MIN_SPEED), 0, 63, brightness);
         
-    // speed arrow
+    // current speed arrow
         uint8_t arrow_offset = map_value(vehicle.speed, LUT_MIN_SPEED, LUT_MAX_SPEED, 0, 40);
         draw_vline(tx_buf, 17, 59-arrow_offset, 65-arrow_offset, brightness);
         draw_vline(tx_buf, 18, 60-arrow_offset, 64-arrow_offset, brightness);
@@ -223,6 +242,7 @@ void UpdateDisplay(uint8_t brightness){
             }
         }
         
+    // finish drawing by sending to OLED panel
         send_buffer_to_OLED(tx_buf, 0, 0);
 }
 

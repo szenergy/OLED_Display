@@ -76,6 +76,13 @@ struct FLAGS{
     bool can_message_received;
 };
 
+typedef enum {
+    UD_TOP_LEFT = 1,
+    UD_TOP_RIGHT,
+    UD_BOTTOM_LEFT,
+    UD_BOTTOM_RIGHT
+} USR_DISPLAY_ALIGNMENT;
+
 extern volatile struct FLAGS flags;
 
 extern volatile struct VEHICLE vehicle;

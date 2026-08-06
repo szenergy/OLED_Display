@@ -12,13 +12,12 @@
 #define DISTANCE_STEP               (float)   0     //how many meters ahead is the LUT value we want to give
 
 #define DISPLAY_BRIGHTNESS          15 //0 to 15, 15 is the brightest
+#define DIM_BRIGHTNESS              15
+
 #define DISPLAY_WIDTH               256
 #define DISPLAY_HEIGHT              64
 #define SPD_GRAPH_START             2 //the lowest speed (in km/h) that is displayed on the graph
 #define SPD_GRAPH_OFFSET            (DISPLAY_HEIGHT-20)-1+(SPD_GRAPH_START*2)
-//#define WHEEL_DIAMETER              (double)0.5586 // in meters
-//#define M_PI                        3.14159265358979323846
-#define SPEED_MULT_FACTOR           (float)0.10376 // (M_PI*WHEEL_DIAMETER*3.6)/60
 
 
 #ifdef	__cplusplus
