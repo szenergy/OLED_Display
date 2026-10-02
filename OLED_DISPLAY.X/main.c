@@ -24,6 +24,7 @@ int main(void)
     while(CAN_OP_MODE_REQUEST_FAIL == CAN1_OperationModeSet(CAN_CONFIGURATION_MODE));
     CAN1_OperationModeSet(CAN_NORMAL_2_0_MODE);
     
+//    SSD1322_HW_msDelay(100);
     
     // init oled display
     SSD1322_API_init();
@@ -49,7 +50,7 @@ int main(void)
         if(flags.update_display){
             flags.update_display = false;
 //            CalculateDisplayValues();
-            UpdateDisplay(DISPLAY_BRIGHTNESS);
+            UpdateDisplay();
 //            LED_RY_Toggle();
         }
         

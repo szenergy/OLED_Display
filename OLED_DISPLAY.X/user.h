@@ -71,6 +71,17 @@ typedef union  __attribute__((packed))
     };
 } STW_STATE_BUTTONS;
 
+typedef enum {
+	ROT_1 = 0,
+	ROT_2 = 1,
+	ROT_3 = 2,
+	ROT_4 = 4,
+	ROT_5 = 8,
+	ROT_6 = 16,
+	ROT_7 = 32,
+	ROT_8 = 64
+} ROT_POS_ENUM;
+
 struct FLAGS{
     bool update_display;
     bool can_message_received;
@@ -97,7 +108,7 @@ extern bool display_off;
 char* itoa(uint32_t value);
 int32_t map_value(int32_t x, int32_t min_x, int32_t max_x, int32_t min_to, int32_t max_to);
 
-void UpdateDisplay(uint8_t brightness);
+void UpdateDisplay();
 void CAN_Receive(void);
 void CalculateDisplayValues(void);
 void User_Idle_Normal(void);

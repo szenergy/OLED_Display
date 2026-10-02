@@ -11,8 +11,10 @@
 #define OPTIMAL_LAP_TIME            (float)   191.1 //optimal lap time in seconds
 #define DISTANCE_STEP               (float)   0     //how many meters ahead is the LUT value we want to give
 
-#define DISPLAY_BRIGHTNESS          15 //0 to 15, 15 is the brightest
-#define DIM_BRIGHTNESS              15
+// 0 to 15, 15 is the brightest
+#define NORMAL_BRIGHTNESS           8
+#define PADDING_BRIGHTNESS          1
+#define HINT_BRIGHTNESS             5
 
 #define DISPLAY_WIDTH               256
 #define DISPLAY_HEIGHT              64
